@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import { fileURLToPath } from "node:url";
 
 export default defineConfig(({ command }) => ({
-  base: command === "build" ? "/unicorn/" : "/",
+  base: command === "build" ? "/Unicorn/" : "/",
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
