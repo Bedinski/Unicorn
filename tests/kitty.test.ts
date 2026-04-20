@@ -97,4 +97,41 @@ describe("renderKitty", () => {
     const high = parse(renderKitty(42));
     expect(high.getAttribute("data-kitty-level")).toBe(String(MAX_LEVEL));
   });
+
+  it("includes all four face variants so CSS can swap expressions", () => {
+    const svg = parse(renderKitty(1));
+    for (const name of ["neutral", "happy", "sad", "surprised"]) {
+      expect(
+        svg.querySelector(`[data-face="${name}"]`),
+        `missing data-face=${name}`,
+      ).not.toBeNull();
+    }
+  });
+
+  it("exposes idle-animation targets (tail, body, ears, eye groups)", () => {
+    const svg = parse(renderKitty(1));
+    for (const part of [
+      "tail-group",
+      "body-group",
+      "ear-l-group",
+      "ear-r-group",
+      "eye-l-group",
+      "eye-r-group",
+    ]) {
+      expect(
+        svg.querySelector(`[data-part="${part}"]`),
+        `missing data-part=${part}`,
+      ).not.toBeNull();
+    }
+  });
+
+  it("non-neutral faces start hidden (via CSS class) so only neutral shows by default", () => {
+    const svg = parse(renderKitty(1));
+    for (const name of ["happy", "sad", "surprised"]) {
+      const el = svg.querySelector(`[data-face="${name}"]`);
+      expect(el?.classList.contains("face-hidden"), name).toBe(true);
+    }
+    const neutral = svg.querySelector('[data-face="neutral"]');
+    expect(neutral?.classList.contains("face-hidden")).toBe(false);
+  });
 });
