@@ -191,10 +191,8 @@ function wireBoard(): void {
     disposeBoard = () => boardEl.removeEventListener("click", onMatchClick);
   } else {
     disposeBoard = wireDrawBoard(boardEl, {
-      onReveal: () => speakZh(round.answer.hanzi),
       onReplayAudio: () => speakZh(round.answer.hanzi),
-      onGotIt: () => onDrawComplete(true),
-      onNeedsPractice: () => onDrawComplete(false),
+      onDone: () => onDrawComplete(),
     });
   }
 }
@@ -286,23 +284,19 @@ function onMatchClick(event: Event): void {
   commitAnswer(wasCorrect, wasCorrect ? 900 : 1400);
 }
 
-function onDrawComplete(wasCorrect: boolean): void {
+function onDrawComplete(): void {
   if (locked) return;
   locked = true;
 
   const feedbackEl = app!.querySelector<HTMLElement>("[data-feedback]");
   if (feedbackEl) {
-    showFeedback(
-      feedbackEl,
-      wasCorrect ? cheerMessage() : encourageMessage(),
-      wasCorrect ? "correct" : "incorrect",
-    );
+    showFeedback(feedbackEl, cheerMessage(), "correct");
   }
-  if (wasCorrect) {
-    speakEn(round.answer.english);
-  }
+  speakEn(round.answer.english);
 
-  commitAnswer(wasCorrect, wasCorrect ? 900 : 1200);
+  // Copy-practice: tapping Done always awards XP. The whole point of Draw
+  // rounds is effortful writing practice, not a pass/fail quiz.
+  commitAnswer(true, 900);
 }
 
 function showFeedback(

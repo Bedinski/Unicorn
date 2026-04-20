@@ -454,6 +454,7 @@ body {
 
 .prompt-card--draw {
   padding: 22px 18px 18px;
+  text-align: center;
 }
 
 .draw-instruction {
@@ -464,35 +465,37 @@ body {
 }
 
 .reference {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 2px dashed var(--accent-soft);
-}
-
-.reference-label {
-  font-size: 0.9rem;
-  color: #6b4a9a;
-  margin-bottom: 4px;
+  margin-top: 12px;
 }
 
 .reference .hanzi {
   font-size: clamp(3.5rem, 18vw, 6rem);
+  line-height: 1;
 }
 
 .reference .pinyin {
   margin-top: 4px;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   color: #6b4a9a;
+  letter-spacing: 1px;
+}
+
+.reference-english {
+  margin-top: 2px;
+  font-size: 0.95rem;
+  color: #6b4a9a;
+  font-style: italic;
 }
 
 .draw-area {
   display: flex;
   justify-content: center;
+  overflow: hidden;
 }
 
 .draw-canvas {
-  width: min(100%, 320px);
-  max-width: 100%;
+  width: 100%;
+  max-width: 320px;
   aspect-ratio: 1 / 1;
   background: #fff;
   border: 3px dashed var(--accent-soft);
@@ -513,9 +516,9 @@ body {
   background: var(--card);
   color: var(--ink);
   border: 3px solid var(--accent-soft);
-  padding: 14px 12px;
+  padding: 16px 12px;
   border-radius: var(--radius);
-  font-size: clamp(1rem, 3.2vw, 1.15rem);
+  font-size: clamp(1rem, 3.4vw, 1.2rem);
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
@@ -529,31 +532,10 @@ body {
   border-color: var(--accent);
 }
 
-.draw-btn[hidden] {
-  display: none !important;
-}
-
-.draw-btn--correct {
-  background: #d1fae5;
+.draw-btn--done {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
   border-color: var(--correct);
   color: #065f46;
-}
-
-.draw-btn--incorrect {
-  background: #fed7aa;
-  border-color: var(--incorrect);
-  color: #9a3412;
-}
-
-.draw-btn--reveal {
-  background: #fef3c7;
-  border-color: var(--reveal);
-  color: #78350f;
-  grid-column: 2 / span 1;
-}
-
-.draw-btn--clear {
-  grid-column: 1 / span 1;
 }
 
 /* ───── Curriculum week banner ───── */

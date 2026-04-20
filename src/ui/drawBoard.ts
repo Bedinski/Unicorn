@@ -1,98 +1,67 @@
 import type { DrawRound } from "@/game/rounds";
 
 export interface DrawBoardHandlers {
-  onReveal: () => void;
   onReplayAudio: () => void;
-  onGotIt: () => void;
-  onNeedsPractice: () => void;
+  onDone: () => void;
 }
 
 export function renderDrawBoard(round: DrawRound): string {
   const hanzi = escapeHtml(round.answer.hanzi);
   const pinyin = escapeHtml(round.answer.pinyin);
+  const english = escapeHtml(round.answer.english);
 
   return `
     <section class="prompt-card prompt-card--draw" data-prompt>
       <button class="replay-audio" data-replay type="button" aria-label="Play pronunciation">🔊</button>
-      <div class="draw-instruction">Listen and draw the character</div>
-      <div class="reference" data-reference hidden>
-        <div class="reference-label">Answer:</div>
+      <div class="draw-instruction">Listen &amp; copy the character</div>
+      <div class="reference" data-reference>
         <div class="hanzi" data-hanzi>${hanzi}</div>
         <div class="pinyin" data-pinyin>${pinyin}</div>
+        <div class="reference-english">${english}</div>
       </div>
     </section>
     <section class="draw-area">
       <canvas class="draw-canvas"
               data-canvas
-              aria-label="Draw the character here"
-              width="320"
-              height="320"></canvas>
+              aria-label="Draw the character here"></canvas>
     </section>
     <section class="draw-controls" data-controls>
       <button class="draw-btn draw-btn--clear" data-action="clear" type="button">🧽 Clear</button>
-      <button class="draw-btn draw-btn--reveal" data-action="reveal" type="button">👀 Show answer</button>
-      <button class="draw-btn draw-btn--correct" data-action="correct" type="button" hidden>✅ I got it</button>
-      <button class="draw-btn draw-btn--incorrect" data-action="incorrect" type="button" hidden>📝 Needs practice</button>
+      <button class="draw-btn draw-btn--done" data-action="done" type="button">✅ Done!</button>
     </section>
   `;
 }
 
 /**
- * Wires pointer events to the canvas and button actions to the handlers.
- * Returns a dispose function that removes all listeners.
+ * Wires pointer events + button actions. Returns a dispose function that
+ * removes listeners and any ResizeObserver.
  */
 export function wireDrawBoard(
   root: HTMLElement,
   handlers: DrawBoardHandlers,
 ): () => void {
   const canvas = root.querySelector<HTMLCanvasElement>("[data-canvas]");
-  const controls = root.querySelector<HTMLElement>("[data-controls]");
-  const reference = root.querySelector<HTMLElement>("[data-reference]");
   const replayBtn = root.querySelector<HTMLButtonElement>("[data-replay]");
+  const clearBtn = root.querySelector<HTMLButtonElement>(
+    '[data-action="clear"]',
+  );
+  const doneBtn = root.querySelector<HTMLButtonElement>(
+    '[data-action="done"]',
+  );
 
-  if (!canvas || !controls || !reference || !replayBtn) {
+  if (!canvas || !replayBtn || !clearBtn || !doneBtn) {
     return () => {};
   }
 
   const disposers: Array<() => void> = [];
   initCanvas(canvas, disposers);
 
-  const revealBtn = controls.querySelector<HTMLButtonElement>(
-    '[data-action="reveal"]',
-  );
-  const clearBtn = controls.querySelector<HTMLButtonElement>(
-    '[data-action="clear"]',
-  );
-  const gotItBtn = controls.querySelector<HTMLButtonElement>(
-    '[data-action="correct"]',
-  );
-  const practiceBtn = controls.querySelector<HTMLButtonElement>(
-    '[data-action="incorrect"]',
-  );
-
   const onClear = () => clearCanvas(canvas);
-  clearBtn?.addEventListener("click", onClear);
-  disposers.push(() => clearBtn?.removeEventListener("click", onClear));
+  clearBtn.addEventListener("click", onClear);
+  disposers.push(() => clearBtn.removeEventListener("click", onClear));
 
-  const onReveal = () => {
-    reference.hidden = false;
-    if (revealBtn) revealBtn.hidden = true;
-    if (gotItBtn) gotItBtn.hidden = false;
-    if (practiceBtn) practiceBtn.hidden = false;
-    handlers.onReveal();
-  };
-  revealBtn?.addEventListener("click", onReveal);
-  disposers.push(() => revealBtn?.removeEventListener("click", onReveal));
-
-  gotItBtn?.addEventListener("click", handlers.onGotIt);
-  disposers.push(() =>
-    gotItBtn?.removeEventListener("click", handlers.onGotIt),
-  );
-
-  practiceBtn?.addEventListener("click", handlers.onNeedsPractice);
-  disposers.push(() =>
-    practiceBtn?.removeEventListener("click", handlers.onNeedsPractice),
-  );
+  doneBtn.addEventListener("click", handlers.onDone);
+  disposers.push(() => doneBtn.removeEventListener("click", handlers.onDone));
 
   replayBtn.addEventListener("click", handlers.onReplayAudio);
   disposers.push(() =>
@@ -102,66 +71,108 @@ export function wireDrawBoard(
   return () => disposers.forEach((fn) => fn());
 }
 
+/**
+ * Measures the canvas's actual rendered CSS size (after layout), sets the
+ * internal bitmap to that size × devicePixelRatio so lines are crisp on
+ * HiDPI, and re-syncs whenever the element resizes (orientation change,
+ * window resize, etc.). We explicitly do NOT set any inline style.width or
+ * style.height so the CSS-driven responsive sizing keeps working.
+ */
 function initCanvas(
   canvas: HTMLCanvasElement,
   disposers: Array<() => void>,
 ): void {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  const state = {
+    cssSize: 320,
+    lastX: 0,
+    lastY: 0,
+    drawing: false,
+  };
 
-  const ratio = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-  const cssSize = canvas.clientWidth || canvas.width || 320;
-  canvas.width = cssSize * ratio;
-  canvas.height = cssSize * ratio;
-  canvas.style.height = `${cssSize}px`;
-  ctx.scale(ratio, ratio);
+  const sync = () => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    // Fall back to the attribute when no layout yet (tests, off-screen).
+    const size = Math.round(rect.width) || canvas.width || 320;
+    if (size === 0) return;
+    const ratio = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    const targetBitmap = size * ratio;
+    if (canvas.width !== targetBitmap || canvas.height !== targetBitmap) {
+      canvas.width = targetBitmap;
+      canvas.height = targetBitmap;
+    }
+    state.cssSize = size;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(ratio, ratio);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 12;
+    ctx.strokeStyle = "#2d1b4e";
+  };
 
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.lineWidth = 10;
-  ctx.strokeStyle = "#2d1b4e";
+  sync();
+  // Re-sync once the first paint completes so rect.width has laid out.
+  requestAnimationFrame(sync);
 
-  let drawing = false;
-  let lastX = 0;
-  let lastY = 0;
+  if (typeof ResizeObserver !== "undefined") {
+    const ro = new ResizeObserver(sync);
+    ro.observe(canvas);
+    disposers.push(() => ro.disconnect());
+  } else {
+    const onResize = () => sync();
+    window.addEventListener("resize", onResize);
+    disposers.push(() => window.removeEventListener("resize", onResize));
+  }
 
   const getPos = (e: PointerEvent): { x: number; y: number } => {
     const rect = canvas.getBoundingClientRect();
+    const w = rect.width || state.cssSize;
+    const h = rect.height || state.cssSize;
     return {
-      x: ((e.clientX - rect.left) * cssSize) / rect.width,
-      y: ((e.clientY - rect.top) * cssSize) / rect.height,
+      x: ((e.clientX - rect.left) * state.cssSize) / w,
+      y: ((e.clientY - rect.top) * state.cssSize) / h,
     };
   };
 
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
   const onDown = (e: PointerEvent) => {
-    drawing = true;
+    state.drawing = true;
     const { x, y } = getPos(e);
-    lastX = x;
-    lastY = y;
+    state.lastX = x;
+    state.lastY = y;
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + 0.01, y + 0.01);
     ctx.stroke();
-    canvas.setPointerCapture(e.pointerId);
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch {
+      // pointer capture isn't strictly needed; drawing still works without it
+    }
+    e.preventDefault();
   };
 
   const onMove = (e: PointerEvent) => {
-    if (!drawing) return;
+    if (!state.drawing) return;
     const { x, y } = getPos(e);
     ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
+    ctx.moveTo(state.lastX, state.lastY);
     ctx.lineTo(x, y);
     ctx.stroke();
-    lastX = x;
-    lastY = y;
+    state.lastX = x;
+    state.lastY = y;
+    e.preventDefault();
   };
 
   const onUp = (e: PointerEvent) => {
-    drawing = false;
+    state.drawing = false;
     try {
       canvas.releasePointerCapture(e.pointerId);
     } catch {
-      // ignore if pointer was never captured
+      // fine if never captured
     }
   };
 
@@ -188,8 +199,11 @@ function clearCanvas(canvas: HTMLCanvasElement): void {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.restore();
-  // re-apply scale for subsequent drawing
   ctx.scale(ratio, ratio);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 12;
+  ctx.strokeStyle = "#2d1b4e";
 }
 
 function escapeHtml(s: string): string {

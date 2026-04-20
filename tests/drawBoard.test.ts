@@ -15,101 +15,53 @@ function mount(): HTMLElement {
 }
 
 describe("renderDrawBoard", () => {
-  it("renders an instruction, replay button, canvas, and controls", () => {
+  it("renders an instruction, replay button, canvas, and two control buttons", () => {
     const host = mount();
     expect(host.querySelector(".draw-instruction")).not.toBeNull();
     expect(host.querySelector("[data-replay]")).not.toBeNull();
     expect(host.querySelector("canvas[data-canvas]")).not.toBeNull();
     expect(host.querySelector('[data-action="clear"]')).not.toBeNull();
-    expect(host.querySelector('[data-action="reveal"]')).not.toBeNull();
-    expect(host.querySelector('[data-action="correct"]')).not.toBeNull();
-    expect(host.querySelector('[data-action="incorrect"]')).not.toBeNull();
+    expect(host.querySelector('[data-action="done"]')).not.toBeNull();
   });
 
-  it("hides the reference and self-assessment buttons initially", () => {
+  it("shows the reference character and pinyin from the start (no hiding)", () => {
     const host = mount();
     const ref = host.querySelector<HTMLElement>("[data-reference]");
-    const got = host.querySelector<HTMLButtonElement>(
-      '[data-action="correct"]',
-    );
-    const prac = host.querySelector<HTMLButtonElement>(
-      '[data-action="incorrect"]',
-    );
-    expect(ref?.hidden).toBe(true);
-    expect(got?.hidden).toBe(true);
-    expect(prac?.hidden).toBe(true);
-  });
-
-  it("includes the answer hanzi and pinyin in the (hidden) reference", () => {
-    const host = mount();
-    const ref = host.querySelector("[data-reference]");
-    expect(ref?.querySelector("[data-hanzi]")?.textContent).toBe(
+    expect(ref).not.toBeNull();
+    expect(ref!.hidden).toBe(false);
+    expect(ref!.querySelector("[data-hanzi]")?.textContent).toBe(
       WORDS[0].hanzi,
     );
-    expect(ref?.querySelector("[data-pinyin]")?.textContent).toBe(
+    expect(ref!.querySelector("[data-pinyin]")?.textContent).toBe(
       WORDS[0].pinyin,
     );
+  });
+
+  it("does not apply an inline height to the canvas so CSS aspect-ratio can keep it square", () => {
+    const host = mount();
+    const canvas = host.querySelector<HTMLCanvasElement>("[data-canvas]")!;
+    expect(canvas.style.height).toBe("");
   });
 });
 
 describe("wireDrawBoard", () => {
-  it("reveal button unhides the reference and swaps to self-assessment buttons", () => {
+  it("Done fires onDone", () => {
     const host = mount();
     const handlers = {
-      onReveal: vi.fn(),
       onReplayAudio: vi.fn(),
-      onGotIt: vi.fn(),
-      onNeedsPractice: vi.fn(),
+      onDone: vi.fn(),
     };
     wireDrawBoard(host, handlers);
 
-    const revealBtn = host.querySelector<HTMLButtonElement>(
-      '[data-action="reveal"]',
-    );
-    const ref = host.querySelector<HTMLElement>("[data-reference]");
-    const gotIt = host.querySelector<HTMLButtonElement>(
-      '[data-action="correct"]',
-    );
-    const practice = host.querySelector<HTMLButtonElement>(
-      '[data-action="incorrect"]',
-    );
-
-    revealBtn!.click();
-
-    expect(handlers.onReveal).toHaveBeenCalledTimes(1);
-    expect(ref!.hidden).toBe(false);
-    expect(revealBtn!.hidden).toBe(true);
-    expect(gotIt!.hidden).toBe(false);
-    expect(practice!.hidden).toBe(false);
-  });
-
-  it("got-it and needs-practice buttons fire their handlers", () => {
-    const host = mount();
-    const handlers = {
-      onReveal: vi.fn(),
-      onReplayAudio: vi.fn(),
-      onGotIt: vi.fn(),
-      onNeedsPractice: vi.fn(),
-    };
-    wireDrawBoard(host, handlers);
-
-    host.querySelector<HTMLButtonElement>('[data-action="reveal"]')!.click();
-    host.querySelector<HTMLButtonElement>('[data-action="correct"]')!.click();
-    expect(handlers.onGotIt).toHaveBeenCalledTimes(1);
-
-    host
-      .querySelector<HTMLButtonElement>('[data-action="incorrect"]')!
-      .click();
-    expect(handlers.onNeedsPractice).toHaveBeenCalledTimes(1);
+    host.querySelector<HTMLButtonElement>('[data-action="done"]')!.click();
+    expect(handlers.onDone).toHaveBeenCalledTimes(1);
   });
 
   it("replay button fires onReplayAudio", () => {
     const host = mount();
     const handlers = {
-      onReveal: vi.fn(),
       onReplayAudio: vi.fn(),
-      onGotIt: vi.fn(),
-      onNeedsPractice: vi.fn(),
+      onDone: vi.fn(),
     };
     wireDrawBoard(host, handlers);
 
@@ -117,21 +69,31 @@ describe("wireDrawBoard", () => {
     expect(handlers.onReplayAudio).toHaveBeenCalledTimes(1);
   });
 
+  it("clear button does not fire onDone", () => {
+    const host = mount();
+    const handlers = {
+      onReplayAudio: vi.fn(),
+      onDone: vi.fn(),
+    };
+    wireDrawBoard(host, handlers);
+
+    host.querySelector<HTMLButtonElement>('[data-action="clear"]')!.click();
+    expect(handlers.onDone).not.toHaveBeenCalled();
+  });
+
   it("dispose removes listeners so later clicks are inert", () => {
     const host = mount();
     const handlers = {
-      onReveal: vi.fn(),
       onReplayAudio: vi.fn(),
-      onGotIt: vi.fn(),
-      onNeedsPractice: vi.fn(),
+      onDone: vi.fn(),
     };
     const dispose = wireDrawBoard(host, handlers);
     dispose();
 
-    host.querySelector<HTMLButtonElement>('[data-action="reveal"]')!.click();
+    host.querySelector<HTMLButtonElement>('[data-action="done"]')!.click();
     host.querySelector<HTMLButtonElement>("[data-replay]")!.click();
 
-    expect(handlers.onReveal).not.toHaveBeenCalled();
+    expect(handlers.onDone).not.toHaveBeenCalled();
     expect(handlers.onReplayAudio).not.toHaveBeenCalled();
   });
 });
