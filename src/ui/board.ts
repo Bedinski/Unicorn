@@ -1,7 +1,7 @@
 import type { Word } from "@/data/words";
-import type { Round } from "@/game/rounds";
+import type { McqRound } from "@/game/rounds";
 
-export function renderBoard(round: Round): string {
+export function renderBoard(round: McqRound): string {
   const buttons = round.choices
     .map(
       (choice, idx) => `

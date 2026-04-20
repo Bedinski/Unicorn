@@ -5,13 +5,13 @@ import {
   markChoice,
   renderBoard,
 } from "@/ui/board";
-import type { Round } from "@/game/rounds";
+import type { McqRound } from "@/game/rounds";
 import { WORDS } from "@/data/words";
 
-function fakeRound(): Round {
+function fakeRound(): McqRound {
   const answer = WORDS[0];
   const choices = [WORDS[0], WORDS[1], WORDS[2]];
-  return { answer, choices };
+  return { kind: "mcq", answer, choices };
 }
 
 describe("renderBoard", () => {

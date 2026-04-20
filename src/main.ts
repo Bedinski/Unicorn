@@ -8,7 +8,11 @@ import {
   xpIntoCurrentLevel,
   xpNeededForNextLevel,
 } from "@/game/levels";
-import { buildRound, type Round } from "@/game/rounds";
+import {
+  buildRound,
+  pickRoundType,
+  type Round,
+} from "@/game/rounds";
 import {
   recordAnswer,
   resetKitty,
@@ -21,26 +25,39 @@ import {
   markChoice,
   renderBoard,
 } from "@/ui/board";
+import { renderDrawBoard, wireDrawBoard } from "@/ui/drawBoard";
 import { cheerMessage, encourageMessage, flash } from "@/ui/feedback";
 import { renderKitty } from "@/ui/kitty";
-import { speakEn, speakZh } from "@/ui/speech";
+import { canSpeak, speakEn, speakZh } from "@/ui/speech";
 
 const app = document.getElementById("app");
 if (!app) throw new Error("#app root not found");
 
 let state: GameState = loadState();
-let round: Round = buildRound(WORDS, state.recentHanzi);
+let round: Round = nextRound();
 let locked = false;
+let disposeBoard: (() => void) | null = null;
 
 render();
 
+function nextRound(): Round {
+  const kind = pickRoundType(Math.random, canSpeak());
+  return buildRound(WORDS, state.recentHanzi, Math.random, kind);
+}
+
 function render(): void {
+  disposeBoard?.();
+  disposeBoard = null;
+
   const level = levelForXp(state.xp);
   const levelXp = xpIntoCurrentLevel(state.xp);
   const nextXp = xpNeededForNextLevel(state.xp);
   const progressPct =
     nextXp === 0 ? 100 : Math.round((levelXp / nextXp) * 100);
   const max = isMaxLevel(state.xp);
+
+  const boardHtml =
+    round.kind === "mcq" ? renderBoard(round) : renderDrawBoard(round);
 
   app!.innerHTML = `
     <header class="top-bar">
@@ -58,16 +75,12 @@ function render(): void {
         <div class="progress-fill" style="width:${progressPct}%"></div>
       </div>
       <div class="progress-label">
-        ${
-          max
-            ? "Max level reached!"
-            : `${levelXp} / ${nextXp} to next level`
-        }
+        ${max ? "Max level reached!" : `${levelXp} / ${nextXp} to next level`}
       </div>
     </section>
 
-    <section class="board" data-board>
-      ${renderBoard(round)}
+    <section class="board board--${round.kind}" data-board>
+      ${boardHtml}
     </section>
 
     <section class="feedback" data-feedback aria-live="polite"></section>
@@ -81,23 +94,33 @@ function render(): void {
     </footer>
   `;
 
-  const boardEl = app!.querySelector<HTMLElement>("[data-board]");
-  boardEl?.addEventListener("click", onBoardClick);
-  app!.querySelector<HTMLButtonElement>("[data-replay]")?.addEventListener(
-    "click",
-    () => speakZh(round.answer.hanzi),
-  );
-  app!.querySelector<HTMLButtonElement>("[data-reset]")?.addEventListener(
-    "click",
-    onReset,
-  );
+  const boardEl = app!.querySelector<HTMLElement>("[data-board]")!;
+
+  if (round.kind === "mcq") {
+    boardEl.addEventListener("click", onMcqClick);
+    boardEl
+      .querySelector<HTMLButtonElement>("[data-replay]")
+      ?.addEventListener("click", () => speakZh(round.answer.hanzi));
+    disposeBoard = () => boardEl.removeEventListener("click", onMcqClick);
+  } else {
+    disposeBoard = wireDrawBoard(boardEl, {
+      onReveal: () => speakZh(round.answer.hanzi),
+      onReplayAudio: () => speakZh(round.answer.hanzi),
+      onGotIt: () => onDrawComplete(true),
+      onNeedsPractice: () => onDrawComplete(false),
+    });
+  }
+
+  app!
+    .querySelector<HTMLButtonElement>("[data-reset]")
+    ?.addEventListener("click", onReset);
 
   // Speak the prompt after a tiny delay so voices are loaded on first paint.
   window.setTimeout(() => speakZh(round.answer.hanzi), 120);
 }
 
-function onBoardClick(event: Event): void {
-  if (locked) return;
+function onMcqClick(event: Event): void {
+  if (locked || round.kind !== "mcq") return;
   const chosen = choiceFromEvent(event);
   if (!chosen) return;
 
@@ -127,18 +150,39 @@ function onBoardClick(event: Event): void {
     flash(boardEl, "board--shake", 500);
   }
 
+  commitAnswer(wasCorrect, wasCorrect ? 850 : 1400);
+}
+
+function onDrawComplete(wasCorrect: boolean): void {
+  if (locked) return;
+  locked = true;
+
+  const feedbackEl = app!.querySelector<HTMLElement>("[data-feedback]");
+  const stage = app!.querySelector<HTMLElement>("[data-kitty-stage]");
+  if (feedbackEl) {
+    feedbackEl.textContent = wasCorrect ? cheerMessage() : encourageMessage();
+    feedbackEl.classList.add(
+      wasCorrect ? "feedback--correct" : "feedback--incorrect",
+    );
+  }
+  if (wasCorrect) {
+    speakEn(round.answer.english);
+    if (stage) flash(stage, "kitty-stage--glow");
+  }
+
+  commitAnswer(wasCorrect, wasCorrect ? 900 : 1200);
+}
+
+function commitAnswer(wasCorrect: boolean, advanceMs: number): void {
   const result = recordAnswer(state, round.answer.hanzi, wasCorrect);
   state = result.state;
   saveState(state);
 
-  window.setTimeout(
-    () => {
-      round = buildRound(WORDS, state.recentHanzi);
-      locked = false;
-      render();
-    },
-    wasCorrect ? 850 : 1400,
-  );
+  window.setTimeout(() => {
+    round = nextRound();
+    locked = false;
+    render();
+  }, advanceMs);
 }
 
 function onReset(): void {
@@ -147,7 +191,6 @@ function onReset(): void {
   state = resetKitty(state);
   clearState();
   saveState(state);
-  round = buildRound(WORDS, state.recentHanzi);
+  round = nextRound();
   render();
 }
-

@@ -318,3 +318,109 @@ body {
 .reset-btn:focus-visible {
   transform: translateY(-2px) scale(1.03);
 }
+
+/* ───── Draw-round UI ───── */
+
+.prompt-card--draw {
+  padding: 22px 18px 18px;
+}
+
+.draw-instruction {
+  font-size: clamp(1rem, 3.5vw, 1.2rem);
+  color: var(--accent);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.reference {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 2px dashed var(--accent-soft);
+}
+
+.reference-label {
+  font-size: 0.9rem;
+  color: #6b4a9a;
+  margin-bottom: 4px;
+}
+
+.reference .hanzi {
+  font-size: clamp(3.5rem, 18vw, 6rem);
+}
+
+.reference .pinyin {
+  margin-top: 4px;
+  font-size: 1.05rem;
+  color: #6b4a9a;
+}
+
+.draw-area {
+  display: flex;
+  justify-content: center;
+}
+
+.draw-canvas {
+  width: min(100%, 320px);
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #fff;
+  border: 3px dashed var(--accent-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  touch-action: none;
+  cursor: crosshair;
+  display: block;
+}
+
+.draw-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.draw-btn {
+  background: var(--card);
+  color: var(--ink);
+  border: 3px solid var(--accent-soft);
+  padding: 14px 12px;
+  border-radius: var(--radius);
+  font-size: clamp(1rem, 3.2vw, 1.15rem);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.draw-btn:hover:not(:disabled),
+.draw-btn:focus-visible:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.draw-btn[hidden] {
+  display: none !important;
+}
+
+.draw-btn--correct {
+  background: #d1fae5;
+  border-color: var(--correct);
+  color: #065f46;
+}
+
+.draw-btn--incorrect {
+  background: #fed7aa;
+  border-color: var(--incorrect);
+  color: #9a3412;
+}
+
+.draw-btn--reveal {
+  background: #fef3c7;
+  border-color: var(--reveal);
+  color: #78350f;
+  grid-column: 2 / span 1;
+}
+
+.draw-btn--clear {
+  grid-column: 1 / span 1;
+}

@@ -1,11 +1,20 @@
 import type { Word } from "@/data/words";
 
 export type Rng = () => number;
+export type RoundKind = "mcq" | "draw";
 
-export interface Round {
+export interface McqRound {
+  kind: "mcq";
   answer: Word;
   choices: Word[];
 }
+
+export interface DrawRound {
+  kind: "draw";
+  answer: Word;
+}
+
+export type Round = McqRound | DrawRound;
 
 export function shuffle<T>(items: readonly T[], rng: Rng = Math.random): T[] {
   const copy = items.slice();
@@ -44,13 +53,27 @@ export function pickDistractors(
   return shuffle(pool, rng).slice(0, count);
 }
 
+export function pickRoundType(
+  rng: Rng,
+  canDraw: boolean,
+  drawProbability = 0.5,
+): RoundKind {
+  if (!canDraw) return "mcq";
+  const p = Math.min(1, Math.max(0, drawProbability));
+  return rng() < p ? "draw" : "mcq";
+}
+
 export function buildRound(
   words: readonly Word[],
   recent: readonly string[],
   rng: Rng = Math.random,
+  kind: RoundKind = "mcq",
 ): Round {
   const answer = pickPrompt(words, recent, rng);
+  if (kind === "draw") {
+    return { kind: "draw", answer };
+  }
   const distractors = pickDistractors(answer, words, 2, rng);
   const choices = shuffle([answer, ...distractors], rng);
-  return { answer, choices };
+  return { kind: "mcq", answer, choices };
 }
