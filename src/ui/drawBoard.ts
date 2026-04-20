@@ -12,9 +12,13 @@ export function renderDrawBoard(round: DrawRound): string {
 
   return `
     <section class="prompt-card prompt-card--draw" data-prompt>
-      <button class="replay-audio" data-replay type="button" aria-label="Play pronunciation">🔊</button>
-      <div class="draw-instruction">Listen &amp; copy the character</div>
-      <div class="reference" data-reference>
+      <button class="replay-audio replay-audio--large" data-replay type="button" aria-label="Play pronunciation">
+        <span class="replay-icon">🔊</span>
+        <span class="replay-label">Listen</span>
+      </button>
+      <div class="draw-instruction">Listen and draw the character</div>
+      <div class="reference" data-reference hidden>
+        <div class="reference-label">That was:</div>
         <div class="hanzi" data-hanzi>${hanzi}</div>
         <div class="pinyin" data-pinyin>${pinyin}</div>
         <div class="reference-english">${english}</div>
@@ -56,12 +60,20 @@ export function wireDrawBoard(
   const disposers: Array<() => void> = [];
   initCanvas(canvas, disposers);
 
+  const reference = root.querySelector<HTMLElement>("[data-reference]");
+
   const onClear = () => clearCanvas(canvas);
   clearBtn.addEventListener("click", onClear);
   disposers.push(() => clearBtn.removeEventListener("click", onClear));
 
-  doneBtn.addEventListener("click", handlers.onDone);
-  disposers.push(() => doneBtn.removeEventListener("click", handlers.onDone));
+  const onDone = () => {
+    if (reference) reference.hidden = false;
+    doneBtn.disabled = true;
+    clearBtn.disabled = true;
+    handlers.onDone();
+  };
+  doneBtn.addEventListener("click", onDone);
+  disposers.push(() => doneBtn.removeEventListener("click", onDone));
 
   replayBtn.addEventListener("click", handlers.onReplayAudio);
   disposers.push(() =>

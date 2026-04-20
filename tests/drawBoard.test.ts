@@ -24,11 +24,12 @@ describe("renderDrawBoard", () => {
     expect(host.querySelector('[data-action="done"]')).not.toBeNull();
   });
 
-  it("shows the reference character and pinyin from the start (no hiding)", () => {
+  it("hides the reference character until Done is pressed", () => {
     const host = mount();
     const ref = host.querySelector<HTMLElement>("[data-reference]");
     expect(ref).not.toBeNull();
-    expect(ref!.hidden).toBe(false);
+    expect(ref!.hidden).toBe(true);
+    // payload is present in the DOM so the reveal-on-done is instant
     expect(ref!.querySelector("[data-hanzi]")?.textContent).toBe(
       WORDS[0].hanzi,
     );
@@ -45,7 +46,7 @@ describe("renderDrawBoard", () => {
 });
 
 describe("wireDrawBoard", () => {
-  it("Done fires onDone", () => {
+  it("Done fires onDone and reveals the reference", () => {
     const host = mount();
     const handlers = {
       onReplayAudio: vi.fn(),
@@ -53,8 +54,22 @@ describe("wireDrawBoard", () => {
     };
     wireDrawBoard(host, handlers);
 
+    const ref = host.querySelector<HTMLElement>("[data-reference]")!;
+    expect(ref.hidden).toBe(true);
     host.querySelector<HTMLButtonElement>('[data-action="done"]')!.click();
     expect(handlers.onDone).toHaveBeenCalledTimes(1);
+    expect(ref.hidden).toBe(false);
+  });
+
+  it("Done disables Clear + Done after press so it can't double-fire", () => {
+    const host = mount();
+    const handlers = { onReplayAudio: vi.fn(), onDone: vi.fn() };
+    wireDrawBoard(host, handlers);
+    const done = host.querySelector<HTMLButtonElement>('[data-action="done"]')!;
+    const clear = host.querySelector<HTMLButtonElement>('[data-action="clear"]')!;
+    done.click();
+    expect(done.disabled).toBe(true);
+    expect(clear.disabled).toBe(true);
   });
 
   it("replay button fires onReplayAudio", () => {

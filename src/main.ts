@@ -285,18 +285,21 @@ function onMatchClick(event: Event): void {
 }
 
 function onDrawComplete(): void {
-  if (locked) return;
+  if (locked || round.kind !== "draw") return;
   locked = true;
 
   const feedbackEl = app!.querySelector<HTMLElement>("[data-feedback]");
   if (feedbackEl) {
     showFeedback(feedbackEl, cheerMessage(), "correct");
   }
-  speakEn(round.answer.english);
+  // Say the word they just drew aloud so the reveal is also audible.
+  speakZh(round.answer.hanzi);
+  window.setTimeout(() => speakEn(round.answer.english), 700);
 
-  // Copy-practice: tapping Done always awards XP. The whole point of Draw
-  // rounds is effortful writing practice, not a pass/fail quiz.
-  commitAnswer(true, 900);
+  // Listen-and-draw: tapping Done always awards XP. It's practice, not a
+  // quiz — the reveal that just appeared in the prompt card is the
+  // learning moment. Advance slower so they can read it.
+  commitAnswer(true, 2200);
 }
 
 function showFeedback(

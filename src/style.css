@@ -465,17 +465,33 @@ body {
 }
 
 .reference {
-  margin-top: 12px;
+  margin-top: 14px;
+  padding: 10px 12px 6px;
+  background: #fffbea;
+  border: 2px dashed var(--reveal);
+  border-radius: 14px;
+  animation: referenceReveal 0.4s ease-out;
+}
+
+.reference[hidden] {
+  display: none !important;
+}
+
+.reference-label {
+  font-size: 0.9rem;
+  color: #6b4a9a;
+  margin-bottom: 2px;
+  font-weight: 700;
 }
 
 .reference .hanzi {
-  font-size: clamp(3.5rem, 18vw, 6rem);
+  font-size: clamp(3rem, 14vw, 5rem);
   line-height: 1;
 }
 
 .reference .pinyin {
   margin-top: 4px;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   color: #6b4a9a;
   letter-spacing: 1px;
 }
@@ -485,6 +501,11 @@ body {
   font-size: 0.95rem;
   color: #6b4a9a;
   font-style: italic;
+}
+
+@keyframes referenceReveal {
+  from { opacity: 0; transform: translateY(-6px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .draw-area {
