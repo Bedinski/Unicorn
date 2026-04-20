@@ -1,24 +1,49 @@
 import { initialState, type GameState } from "./state";
 
 const STORAGE_KEY = "magical-kitty-mandarin:v1";
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 interface StoredShape {
   version: number;
-  state: GameState;
+  state: Partial<GameState>;
 }
 
-function isGameState(value: unknown): value is GameState {
-  if (!value || typeof value !== "object") return false;
-  const v = value as Record<string, unknown>;
-  return (
-    typeof v.xp === "number" &&
-    Number.isFinite(v.xp) &&
-    typeof v.correctCount === "number" &&
-    typeof v.incorrectCount === "number" &&
-    Array.isArray(v.recentHanzi) &&
-    v.recentHanzi.every((h) => typeof h === "string")
-  );
+function mergeWithDefaults(partial: Partial<GameState>): GameState {
+  const base = initialState();
+  const merged: GameState = {
+    xp: typeof partial.xp === "number" ? partial.xp : base.xp,
+    correctCount:
+      typeof partial.correctCount === "number"
+        ? partial.correctCount
+        : base.correctCount,
+    incorrectCount:
+      typeof partial.incorrectCount === "number"
+        ? partial.incorrectCount
+        : base.incorrectCount,
+    recentHanzi: Array.isArray(partial.recentHanzi)
+      ? partial.recentHanzi.filter((h): h is string => typeof h === "string")
+      : base.recentHanzi,
+    streak: typeof partial.streak === "number" ? partial.streak : base.streak,
+    bestStreak:
+      typeof partial.bestStreak === "number"
+        ? partial.bestStreak
+        : base.bestStreak,
+    seenHanzi: Array.isArray(partial.seenHanzi)
+      ? partial.seenHanzi.filter((h): h is string => typeof h === "string")
+      : base.seenHanzi,
+    stars:
+      partial.stars &&
+      typeof partial.stars === "object" &&
+      typeof partial.stars.date === "string" &&
+      typeof partial.stars.count === "number"
+        ? { date: partial.stars.date, count: partial.stars.count }
+        : base.stars,
+    categoryCorrect:
+      partial.categoryCorrect && typeof partial.categoryCorrect === "object"
+        ? { ...partial.categoryCorrect }
+        : base.categoryCorrect,
+  };
+  return merged;
 }
 
 export function loadState(
@@ -29,9 +54,14 @@ export function loadState(
     const raw = storage.getItem(STORAGE_KEY);
     if (!raw) return initialState();
     const parsed = JSON.parse(raw) as Partial<StoredShape>;
-    if (parsed.version !== SCHEMA_VERSION) return initialState();
-    if (!isGameState(parsed.state)) return initialState();
-    return parsed.state;
+    // Unknown future versions reset; older versions (1) merge-forward.
+    if (typeof parsed.version !== "number" || parsed.version > SCHEMA_VERSION) {
+      return initialState();
+    }
+    if (!parsed.state || typeof parsed.state !== "object") {
+      return initialState();
+    }
+    return mergeWithDefaults(parsed.state);
   } catch {
     return initialState();
   }

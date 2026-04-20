@@ -1,7 +1,7 @@
 import type { Word } from "@/data/words";
 
 export type Rng = () => number;
-export type RoundKind = "mcq" | "draw";
+export type RoundKind = "mcq" | "draw" | "match";
 
 export interface McqRound {
   kind: "mcq";
@@ -14,7 +14,13 @@ export interface DrawRound {
   answer: Word;
 }
 
-export type Round = McqRound | DrawRound;
+export interface MatchRound {
+  kind: "match";
+  answer: Word;
+  choices: Word[];
+}
+
+export type Round = McqRound | DrawRound | MatchRound;
 
 export function shuffle<T>(items: readonly T[], rng: Rng = Math.random): T[] {
   const copy = items.slice();
@@ -53,14 +59,35 @@ export function pickDistractors(
   return shuffle(pool, rng).slice(0, count);
 }
 
+export interface RoundWeights {
+  mcq: number;
+  draw: number;
+  match: number;
+}
+
+export const DEFAULT_ROUND_WEIGHTS: RoundWeights = {
+  mcq: 2,
+  draw: 1,
+  match: 2,
+};
+
+/**
+ * Picks the next round type. `draw` and `match` both require audio, so
+ * passing `canAudio=false` forces `mcq`. When audio is available, the
+ * caller can tune the distribution via `weights`.
+ */
 export function pickRoundType(
   rng: Rng,
-  canDraw: boolean,
-  drawProbability = 0.5,
+  canAudio: boolean,
+  weights: RoundWeights = DEFAULT_ROUND_WEIGHTS,
 ): RoundKind {
-  if (!canDraw) return "mcq";
-  const p = Math.min(1, Math.max(0, drawProbability));
-  return rng() < p ? "draw" : "mcq";
+  if (!canAudio) return "mcq";
+  const total = weights.mcq + weights.draw + weights.match;
+  if (total <= 0) return "mcq";
+  const r = rng() * total;
+  if (r < weights.mcq) return "mcq";
+  if (r < weights.mcq + weights.draw) return "draw";
+  return "match";
 }
 
 export function buildRound(
@@ -75,5 +102,8 @@ export function buildRound(
   }
   const distractors = pickDistractors(answer, words, 2, rng);
   const choices = shuffle([answer, ...distractors], rng);
+  if (kind === "match") {
+    return { kind: "match", answer, choices };
+  }
   return { kind: "mcq", answer, choices };
 }

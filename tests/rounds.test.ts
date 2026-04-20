@@ -113,34 +113,53 @@ describe("buildRound", () => {
     expect(WORDS).toContainEqual(round.answer);
     expect((round as { choices?: unknown }).choices).toBeUndefined();
   });
+
+  it("produces a match round with 3 hanzi choices containing the answer", () => {
+    const round = buildRound(WORDS, [], seededRng(3), "match");
+    expect(round.kind).toBe("match");
+    if (round.kind !== "match") throw new Error("wrong kind");
+    expect(round.choices).toHaveLength(3);
+    expect(round.choices.map((c) => c.hanzi)).toContain(round.answer.hanzi);
+    const uniq = new Set(round.choices.map((c) => c.hanzi));
+    expect(uniq.size).toBe(3);
+  });
 });
 
 describe("pickRoundType", () => {
-  it("always returns mcq when drawing is not supported", () => {
+  it("always returns mcq when audio is not supported", () => {
     for (let seed = 1; seed < 20; seed++) {
       expect(pickRoundType(seededRng(seed), false)).toBe("mcq");
     }
   });
 
-  it("can return draw when drawing is supported", () => {
+  it("produces all three kinds when audio is supported", () => {
     const rng = seededRng(12345);
     const results = new Set<string>();
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 300; i++) {
       results.add(pickRoundType(rng, true));
     }
     expect(results.has("mcq")).toBe(true);
     expect(results.has("draw")).toBe(true);
+    expect(results.has("match")).toBe(true);
   });
 
-  it("always returns mcq when drawProbability is 0", () => {
+  it("always returns the only kind with non-zero weight", () => {
     for (let seed = 1; seed < 20; seed++) {
-      expect(pickRoundType(seededRng(seed), true, 0)).toBe("mcq");
+      expect(
+        pickRoundType(seededRng(seed), true, { mcq: 0, draw: 0, match: 1 }),
+      ).toBe("match");
+      expect(
+        pickRoundType(seededRng(seed), true, { mcq: 1, draw: 0, match: 0 }),
+      ).toBe("mcq");
+      expect(
+        pickRoundType(seededRng(seed), true, { mcq: 0, draw: 1, match: 0 }),
+      ).toBe("draw");
     }
   });
 
-  it("always returns draw when drawProbability is 1", () => {
-    for (let seed = 1; seed < 20; seed++) {
-      expect(pickRoundType(seededRng(seed), true, 1)).toBe("draw");
-    }
+  it("falls back to mcq when all weights are zero", () => {
+    expect(
+      pickRoundType(seededRng(1), true, { mcq: 0, draw: 0, match: 0 }),
+    ).toBe("mcq");
   });
 });

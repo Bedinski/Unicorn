@@ -70,6 +70,8 @@ describe("end-to-end gameplay loop", () => {
     }
     expect(state.correctCount).toBe(8);
     expect(state.incorrectCount).toBe(2);
-    expect(state.xp).toBe(8);
+    // base xp (8) + streak milestone bonuses at streak 3 (twice in this pattern)
+    // = 8 + 1 + 1 = 10
+    expect(state.xp).toBe(10);
   });
 });

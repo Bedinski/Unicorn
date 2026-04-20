@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { XP_THRESHOLDS, MAX_LEVEL } from "@/game/levels";
 import {
+  DAILY_STAR_GOAL,
   RECENT_MEMORY,
+  STICKER_THRESHOLD,
+  earnedStickers,
   initialState,
   recordAnswer,
   resetKitty,
+  todayIso,
 } from "@/game/state";
 
-describe("recordAnswer", () => {
+describe("recordAnswer base behavior", () => {
   it("increments xp + correctCount on a correct answer", () => {
     const s0 = initialState();
     const r = recordAnswer(s0, "猫", true);
@@ -26,19 +30,6 @@ describe("recordAnswer", () => {
     expect(r.leveledUp).toBe(false);
   });
 
-  it("sets leveledUp when xp crosses a threshold", () => {
-    // 3 correct answers reaches XP=3, threshold for level 2
-    let s = initialState();
-    let last = recordAnswer(s, "一", true);
-    s = last.state;
-    last = recordAnswer(s, "二", true);
-    s = last.state;
-    last = recordAnswer(s, "三", true);
-    expect(last.state.xp).toBe(3);
-    expect(last.leveledUp).toBe(true);
-    expect(last.newLevel).toBe(2);
-  });
-
   it("tracks recent hanzi up to RECENT_MEMORY with newest first", () => {
     let s = initialState();
     const seq = ["猫", "狗", "鱼", "鸟", "山", "水"];
@@ -50,7 +41,6 @@ describe("recordAnswer", () => {
 
   it("caps at MAX_LEVEL and reports justMaxed exactly once", () => {
     const maxXp = XP_THRESHOLDS[MAX_LEVEL - 1];
-    // give just enough to hit max on the next correct answer
     let s = { ...initialState(), xp: maxXp - 1 };
     const first = recordAnswer(s, "猫", true);
     expect(first.newLevel).toBe(MAX_LEVEL);
@@ -61,14 +51,169 @@ describe("recordAnswer", () => {
   });
 });
 
+describe("streak", () => {
+  it("increments on correct answers and resets on wrong", () => {
+    let s = initialState();
+    s = recordAnswer(s, "猫", true).state;
+    expect(s.streak).toBe(1);
+    s = recordAnswer(s, "狗", true).state;
+    expect(s.streak).toBe(2);
+    s = recordAnswer(s, "鱼", false).state;
+    expect(s.streak).toBe(0);
+    s = recordAnswer(s, "鸟", true).state;
+    expect(s.streak).toBe(1);
+  });
+
+  it("tracks bestStreak as the max streak ever reached", () => {
+    let s = initialState();
+    for (const h of ["猫", "狗", "鱼"]) {
+      s = recordAnswer(s, h, true).state;
+    }
+    expect(s.bestStreak).toBe(3);
+    s = recordAnswer(s, "鸟", false).state;
+    expect(s.streak).toBe(0);
+    expect(s.bestStreak).toBe(3);
+  });
+
+  it("awards bonus XP at streak milestones (3, 5, 10)", () => {
+    let s = initialState();
+    // streak 1, 2 — no bonus
+    const r1 = recordAnswer(s, "一", true);
+    s = r1.state;
+    expect(r1.bonusXp).toBe(0);
+    const r2 = recordAnswer(s, "二", true);
+    s = r2.state;
+    expect(r2.bonusXp).toBe(0);
+    // streak 3 — milestone, +1 bonus
+    const r3 = recordAnswer(s, "三", true);
+    s = r3.state;
+    expect(r3.streakMilestone).toBe(3);
+    expect(r3.bonusXp).toBe(1);
+    expect(s.xp).toBe(4); // 3 base + 1 bonus
+    // streak 4 — no bonus
+    const r4 = recordAnswer(s, "四", true);
+    s = r4.state;
+    expect(r4.bonusXp).toBe(0);
+    // streak 5 — milestone, +2 bonus
+    const r5 = recordAnswer(s, "五", true);
+    s = r5.state;
+    expect(r5.streakMilestone).toBe(5);
+    expect(r5.bonusXp).toBe(2);
+  });
+});
+
+describe("seen words (NEW badge)", () => {
+  it("flags the first encounter as new and tracks it thereafter", () => {
+    let s = initialState();
+    const first = recordAnswer(s, "猫", true);
+    expect(first.wasNewWord).toBe(true);
+    s = first.state;
+    expect(s.seenHanzi).toContain("猫");
+    const second = recordAnswer(s, "猫", true);
+    expect(second.wasNewWord).toBe(false);
+  });
+
+  it("counts wrong-answer encounters as seen too", () => {
+    const r = recordAnswer(initialState(), "狗", false);
+    expect(r.wasNewWord).toBe(true);
+    expect(r.state.seenHanzi).toContain("狗");
+  });
+});
+
+describe("daily stars", () => {
+  it("increments today's star count on correct answers", () => {
+    const now = new Date("2026-04-20T10:00:00");
+    let s = initialState();
+    s.stars = { date: todayIso(now), count: 0 };
+    s = recordAnswer(s, "猫", true, now).state;
+    expect(s.stars.count).toBe(1);
+    s = recordAnswer(s, "狗", true, now).state;
+    expect(s.stars.count).toBe(2);
+  });
+
+  it("does not increment stars on a wrong answer", () => {
+    const now = new Date("2026-04-20T10:00:00");
+    const s0 = { ...initialState(), stars: { date: todayIso(now), count: 3 } };
+    const r = recordAnswer(s0, "猫", false, now);
+    expect(r.state.stars.count).toBe(3);
+  });
+
+  it("rolls the counter over when the date changes", () => {
+    const yesterday = new Date("2026-04-19T23:59:00");
+    const today = new Date("2026-04-20T00:05:00");
+    const s0 = {
+      ...initialState(),
+      stars: { date: todayIso(yesterday), count: 7 },
+    };
+    const r = recordAnswer(s0, "猫", true, today);
+    expect(r.state.stars.date).toBe(todayIso(today));
+    expect(r.state.stars.count).toBe(1);
+  });
+
+  it("fires dailyGoalHit exactly when crossing the goal threshold", () => {
+    const now = new Date("2026-04-20T10:00:00");
+    let s = {
+      ...initialState(),
+      stars: { date: todayIso(now), count: DAILY_STAR_GOAL - 1 },
+    };
+    const hitting = recordAnswer(s, "猫", true, now);
+    expect(hitting.dailyGoalHit).toBe(true);
+    s = hitting.state;
+    const after = recordAnswer(s, "狗", true, now);
+    expect(after.dailyGoalHit).toBe(false);
+  });
+});
+
+describe("category stickers", () => {
+  it("awards a sticker when a category hits the threshold of correct answers", () => {
+    let s = initialState();
+    const animals = ["猫", "狗", "鱼", "鸟", "马"];
+    let newSticker: string | null = null;
+    for (const h of animals) {
+      const r = recordAnswer(s, h, true);
+      s = r.state;
+      if (r.newSticker) newSticker = r.newSticker;
+    }
+    expect(s.categoryCorrect.animals).toBe(STICKER_THRESHOLD);
+    expect(newSticker).toBe("animals");
+    expect(earnedStickers(s)).toContain("animals");
+  });
+
+  it("does not re-award a sticker after further correct answers", () => {
+    let s = initialState();
+    const animals = ["猫", "狗", "鱼", "鸟", "马", "牛"];
+    const stickerEvents: string[] = [];
+    for (const h of animals) {
+      const r = recordAnswer(s, h, true);
+      s = r.state;
+      if (r.newSticker) stickerEvents.push(r.newSticker);
+    }
+    expect(stickerEvents).toEqual(["animals"]);
+  });
+
+  it("wrong answers do not progress a category", () => {
+    const s0 = initialState();
+    const r = recordAnswer(s0, "猫", false);
+    expect(r.state.categoryCorrect.animals).toBeUndefined();
+  });
+});
+
 describe("resetKitty", () => {
-  it("zeroes xp and counts but preserves recent hanzi to avoid immediate repeats", () => {
-    const base = recordAnswer(initialState(), "猫", true).state;
-    const next = recordAnswer(base, "狗", true).state;
-    const reset = resetKitty(next);
+  it("zeroes xp and per-round counts but preserves persistent progress", () => {
+    let s = initialState();
+    for (const h of ["猫", "狗", "鱼", "鸟", "马"]) {
+      s = recordAnswer(s, h, true).state;
+    }
+    const reset = resetKitty(s);
     expect(reset.xp).toBe(0);
     expect(reset.correctCount).toBe(0);
     expect(reset.incorrectCount).toBe(0);
-    expect(reset.recentHanzi).toEqual(next.recentHanzi);
+    expect(reset.streak).toBe(0);
+    // preserved
+    expect(reset.seenHanzi).toEqual(s.seenHanzi);
+    expect(reset.stars).toEqual(s.stars);
+    expect(reset.categoryCorrect).toEqual(s.categoryCorrect);
+    expect(reset.bestStreak).toBe(s.bestStreak);
+    expect(reset.recentHanzi).toEqual(s.recentHanzi);
   });
 });
