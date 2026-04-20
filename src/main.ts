@@ -1,6 +1,10 @@
 /// <reference types="vite/client" />
 import "./style.css";
-import { WORDS } from "@/data/words";
+import {
+  currentWeekSummary,
+  drawPool,
+  recognitionPool,
+} from "@/game/curriculum";
 import {
   MAX_LEVEL,
   isMaxLevel,
@@ -59,7 +63,12 @@ render();
 
 function nextRound(): Round {
   const kind = pickRoundType(Math.random, canSpeak());
-  return buildRound(WORDS, state.recentHanzi, Math.random, kind);
+  const pool = kind === "draw" ? drawPool() : recognitionPool();
+  // Pool must have at least 3 entries so MCQ/Match can build distractors.
+  // drawPool may dip below 3 very early in the school year; upgrade to the
+  // recognition pool in that case.
+  const safePool = pool.length >= 3 ? pool : recognitionPool();
+  return buildRound(safePool, state.recentHanzi, Math.random, kind);
 }
 
 function render(): void {
@@ -92,6 +101,11 @@ function render(): void {
         <div class="level-chip" data-level>Level ${level} / ${MAX_LEVEL}</div>
       </div>
     </header>
+    ${
+      currentWeekSummary()
+        ? `<div class="week-banner" data-week>📖 ${currentWeekSummary()}</div>`
+        : ""
+    }
 
     <section class="kitty-stage" data-kitty-stage>
       ${renderKitty(level)}

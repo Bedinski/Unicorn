@@ -43,8 +43,12 @@ describe("renderDrawBoard", () => {
   it("includes the answer hanzi and pinyin in the (hidden) reference", () => {
     const host = mount();
     const ref = host.querySelector("[data-reference]");
-    expect(ref?.querySelector("[data-hanzi]")?.textContent).toBe("猫");
-    expect(ref?.querySelector("[data-pinyin]")?.textContent).toBe("māo");
+    expect(ref?.querySelector("[data-hanzi]")?.textContent).toBe(
+      WORDS[0].hanzi,
+    );
+    expect(ref?.querySelector("[data-pinyin]")?.textContent).toBe(
+      WORDS[0].pinyin,
+    );
   });
 });
 

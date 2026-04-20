@@ -19,12 +19,16 @@ describe("renderBoard", () => {
     const container = document.createElement("div");
     container.innerHTML = renderBoard(fakeRound());
 
-    expect(container.querySelector('[data-hanzi]')?.textContent).toBe("猫");
-    expect(container.querySelector('[data-pinyin]')?.textContent).toBe("māo");
+    expect(container.querySelector('[data-hanzi]')?.textContent).toBe(
+      WORDS[0].hanzi,
+    );
+    expect(container.querySelector('[data-pinyin]')?.textContent).toBe(
+      WORDS[0].pinyin,
+    );
 
     const choices = container.querySelectorAll("button.choice");
     expect(choices).toHaveLength(3);
-    expect(choices[0].getAttribute("data-choice")).toBe("cat");
+    expect(choices[0].getAttribute("data-choice")).toBe(WORDS[0].english);
   });
 
   it("includes a replay-audio button", () => {
@@ -38,8 +42,10 @@ describe("markChoice / disableChoices", () => {
   it("adds the status class to the chosen button", () => {
     const container = document.createElement("div");
     container.innerHTML = renderBoard(fakeRound());
-    markChoice(container, "cat", "correct");
-    const btn = container.querySelector('[data-choice="cat"]');
+    markChoice(container, WORDS[0].english, "correct");
+    const btn = container.querySelector(
+      `[data-choice="${WORDS[0].english}"]`,
+    );
     expect(btn?.classList.contains("choice--correct")).toBe(true);
   });
 
@@ -60,11 +66,11 @@ describe("choiceFromEvent", () => {
     container.innerHTML = renderBoard(fakeRound());
 
     const inner = container.querySelector(
-      '[data-choice="cat"] .choice-label',
+      `[data-choice="${WORDS[0].english}"] .choice-label`,
     ) as HTMLElement;
     const evt = new MouseEvent("click", { bubbles: true });
     Object.defineProperty(evt, "target", { value: inner });
-    expect(choiceFromEvent(evt)).toBe("cat");
+    expect(choiceFromEvent(evt)).toBe(WORDS[0].english);
   });
 
   it("returns null when the click is outside a choice button", () => {

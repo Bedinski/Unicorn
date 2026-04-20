@@ -14,7 +14,7 @@ import {
 describe("recordAnswer base behavior", () => {
   it("increments xp + correctCount on a correct answer", () => {
     const s0 = initialState();
-    const r = recordAnswer(s0, "猫", true);
+    const r = recordAnswer(s0, "貓", true);
     expect(r.state.xp).toBe(1);
     expect(r.state.correctCount).toBe(1);
     expect(r.state.incorrectCount).toBe(0);
@@ -32,17 +32,17 @@ describe("recordAnswer base behavior", () => {
 
   it("tracks recent hanzi up to RECENT_MEMORY with newest first", () => {
     let s = initialState();
-    const seq = ["猫", "狗", "鱼", "鸟", "山", "水"];
+    const seq = ["貓", "狗", "魚", "羊", "山", "水"];
     for (const h of seq) s = recordAnswer(s, h, true).state;
     expect(s.recentHanzi).toHaveLength(RECENT_MEMORY);
     expect(s.recentHanzi[0]).toBe("水");
-    expect(s.recentHanzi).toEqual(["水", "山", "鸟", "鱼"]);
+    expect(s.recentHanzi).toEqual(["水", "山", "羊", "魚"]);
   });
 
   it("caps at MAX_LEVEL and reports justMaxed exactly once", () => {
     const maxXp = XP_THRESHOLDS[MAX_LEVEL - 1];
     let s = { ...initialState(), xp: maxXp - 1 };
-    const first = recordAnswer(s, "猫", true);
+    const first = recordAnswer(s, "貓", true);
     expect(first.newLevel).toBe(MAX_LEVEL);
     expect(first.justMaxed).toBe(true);
     const second = recordAnswer(first.state, "狗", true);
@@ -54,23 +54,23 @@ describe("recordAnswer base behavior", () => {
 describe("streak", () => {
   it("increments on correct answers and resets on wrong", () => {
     let s = initialState();
-    s = recordAnswer(s, "猫", true).state;
+    s = recordAnswer(s, "貓", true).state;
     expect(s.streak).toBe(1);
     s = recordAnswer(s, "狗", true).state;
     expect(s.streak).toBe(2);
-    s = recordAnswer(s, "鱼", false).state;
+    s = recordAnswer(s, "魚", false).state;
     expect(s.streak).toBe(0);
-    s = recordAnswer(s, "鸟", true).state;
+    s = recordAnswer(s, "羊", true).state;
     expect(s.streak).toBe(1);
   });
 
   it("tracks bestStreak as the max streak ever reached", () => {
     let s = initialState();
-    for (const h of ["猫", "狗", "鱼"]) {
+    for (const h of ["貓", "狗", "魚"]) {
       s = recordAnswer(s, h, true).state;
     }
     expect(s.bestStreak).toBe(3);
-    s = recordAnswer(s, "鸟", false).state;
+    s = recordAnswer(s, "羊", false).state;
     expect(s.streak).toBe(0);
     expect(s.bestStreak).toBe(3);
   });
@@ -105,11 +105,11 @@ describe("streak", () => {
 describe("seen words (NEW badge)", () => {
   it("flags the first encounter as new and tracks it thereafter", () => {
     let s = initialState();
-    const first = recordAnswer(s, "猫", true);
+    const first = recordAnswer(s, "貓", true);
     expect(first.wasNewWord).toBe(true);
     s = first.state;
-    expect(s.seenHanzi).toContain("猫");
-    const second = recordAnswer(s, "猫", true);
+    expect(s.seenHanzi).toContain("貓");
+    const second = recordAnswer(s, "貓", true);
     expect(second.wasNewWord).toBe(false);
   });
 
@@ -125,7 +125,7 @@ describe("daily stars", () => {
     const now = new Date("2026-04-20T10:00:00");
     let s = initialState();
     s.stars = { date: todayIso(now), count: 0 };
-    s = recordAnswer(s, "猫", true, now).state;
+    s = recordAnswer(s, "貓", true, now).state;
     expect(s.stars.count).toBe(1);
     s = recordAnswer(s, "狗", true, now).state;
     expect(s.stars.count).toBe(2);
@@ -134,7 +134,7 @@ describe("daily stars", () => {
   it("does not increment stars on a wrong answer", () => {
     const now = new Date("2026-04-20T10:00:00");
     const s0 = { ...initialState(), stars: { date: todayIso(now), count: 3 } };
-    const r = recordAnswer(s0, "猫", false, now);
+    const r = recordAnswer(s0, "貓", false, now);
     expect(r.state.stars.count).toBe(3);
   });
 
@@ -145,7 +145,7 @@ describe("daily stars", () => {
       ...initialState(),
       stars: { date: todayIso(yesterday), count: 7 },
     };
-    const r = recordAnswer(s0, "猫", true, today);
+    const r = recordAnswer(s0, "貓", true, today);
     expect(r.state.stars.date).toBe(todayIso(today));
     expect(r.state.stars.count).toBe(1);
   });
@@ -156,7 +156,7 @@ describe("daily stars", () => {
       ...initialState(),
       stars: { date: todayIso(now), count: DAILY_STAR_GOAL - 1 },
     };
-    const hitting = recordAnswer(s, "猫", true, now);
+    const hitting = recordAnswer(s, "貓", true, now);
     expect(hitting.dailyGoalHit).toBe(true);
     s = hitting.state;
     const after = recordAnswer(s, "狗", true, now);
@@ -167,7 +167,7 @@ describe("daily stars", () => {
 describe("category stickers", () => {
   it("awards a sticker when a category hits the threshold of correct answers", () => {
     let s = initialState();
-    const animals = ["猫", "狗", "鱼", "鸟", "马"];
+    const animals = ["貓", "狗", "魚", "羊", "馬"];
     let newSticker: string | null = null;
     for (const h of animals) {
       const r = recordAnswer(s, h, true);
@@ -181,7 +181,7 @@ describe("category stickers", () => {
 
   it("does not re-award a sticker after further correct answers", () => {
     let s = initialState();
-    const animals = ["猫", "狗", "鱼", "鸟", "马", "牛"];
+    const animals = ["貓", "狗", "魚", "羊", "馬", "牛"];
     const stickerEvents: string[] = [];
     for (const h of animals) {
       const r = recordAnswer(s, h, true);
@@ -193,7 +193,7 @@ describe("category stickers", () => {
 
   it("wrong answers do not progress a category", () => {
     const s0 = initialState();
-    const r = recordAnswer(s0, "猫", false);
+    const r = recordAnswer(s0, "貓", false);
     expect(r.state.categoryCorrect.animals).toBeUndefined();
   });
 });
@@ -201,7 +201,7 @@ describe("category stickers", () => {
 describe("resetKitty", () => {
   it("zeroes xp and per-round counts but preserves persistent progress", () => {
     let s = initialState();
-    for (const h of ["猫", "狗", "鱼", "鸟", "马"]) {
+    for (const h of ["貓", "狗", "魚", "羊", "馬"]) {
       s = recordAnswer(s, h, true).state;
     }
     const reset = resetKitty(s);

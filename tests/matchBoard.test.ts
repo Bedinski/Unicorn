@@ -30,8 +30,10 @@ describe("renderMatchBoard", () => {
     expect(host.querySelector("[data-replay]")).not.toBeNull();
     const choices = host.querySelectorAll("button.choice");
     expect(choices).toHaveLength(3);
-    expect(choices[0].getAttribute("data-choice")).toBe("猫");
-    expect(choices[0].querySelector(".choice-hanzi")?.textContent).toBe("猫");
+    expect(choices[0].getAttribute("data-choice")).toBe(WORDS[0].hanzi);
+    expect(choices[0].querySelector(".choice-hanzi")?.textContent).toBe(
+      WORDS[0].hanzi,
+    );
   });
 
   it("does not show the answer in plain text before reveal", () => {
@@ -44,9 +46,9 @@ describe("renderMatchBoard", () => {
 describe("markMatchChoice / disableMatchChoices", () => {
   it("marks a button with the correct state class", () => {
     const host = mount();
-    markMatchChoice(host, "猫", "correct");
+    markMatchChoice(host, WORDS[0].hanzi, "correct");
     expect(
-      host.querySelector('[data-choice="猫"]')!.classList.contains(
+      host.querySelector(`[data-choice="${WORDS[0].hanzi}"]`)!.classList.contains(
         "choice--correct",
       ),
     ).toBe(true);
@@ -65,11 +67,11 @@ describe("matchChoiceFromEvent", () => {
   it("returns the hanzi of the clicked button", () => {
     const host = mount();
     const inner = host.querySelector(
-      '[data-choice="猫"] .choice-hanzi',
+      `[data-choice="${WORDS[0].hanzi}"] .choice-hanzi`,
     ) as HTMLElement;
     const evt = new MouseEvent("click", { bubbles: true });
     Object.defineProperty(evt, "target", { value: inner });
-    expect(matchChoiceFromEvent(evt)).toBe("猫");
+    expect(matchChoiceFromEvent(evt)).toBe(WORDS[0].hanzi);
   });
 
   it("returns null when the click is outside a choice button", () => {

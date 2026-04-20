@@ -9,15 +9,23 @@ export interface StickerInfo {
 }
 
 export const STICKERS: readonly StickerInfo[] = [
-  { category: "animals", label: "Animal Friend", emoji: "🐾" },
-  { category: "colors", label: "Rainbow Master", emoji: "🌈" },
-  { category: "numbers", label: "Number Wizard", emoji: "🔢" },
+  { category: "pronouns", label: "Word Friend", emoji: "👋" },
   { category: "family", label: "Family Helper", emoji: "👨‍👩‍👧" },
-  { category: "nature", label: "Nature Explorer", emoji: "🌳" },
-  { category: "size", label: "Size Scout", emoji: "📏" },
-  { category: "body", label: "Body Buddy", emoji: "🖐️" },
-  { category: "food", label: "Snack Pro", emoji: "🍱" },
+  { category: "classroom", label: "Class Captain", emoji: "🎒" },
+  { category: "school", label: "School Star", emoji: "🏫" },
+  { category: "animals", label: "Animal Friend", emoji: "🐾" },
+  { category: "senses", label: "Five Senses", emoji: "👃" },
+  { category: "numbers", label: "Number Wizard", emoji: "🔢" },
+  { category: "colors", label: "Rainbow Master", emoji: "🌈" },
+  { category: "pointing", label: "Pointer", emoji: "👉" },
+  { category: "body_parts", label: "Body Buddy", emoji: "🖐️" },
+  { category: "places", label: "Explorer", emoji: "🏞️" },
+  { category: "dates", label: "Calendar Kid", emoji: "📅" },
+  { category: "weather", label: "Weather Watcher", emoji: "☀️" },
   { category: "opposites", label: "Opposite Champ", emoji: "↔️" },
+  { category: "verbs", label: "Action Hero", emoji: "🏃" },
+  { category: "feelings", label: "Feeling Finder", emoji: "😊" },
+  { category: "greetings", label: "Greeter", emoji: "🙌" },
 ];
 
 export function infoFor(category: WordCategory): StickerInfo {

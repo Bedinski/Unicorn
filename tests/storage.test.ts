@@ -27,7 +27,7 @@ describe("storage", () => {
   });
 
   it("round-trips a saved state", () => {
-    const base = recordAnswer(initialState(), "猫", true).state;
+    const base = recordAnswer(initialState(), "貓", true).state;
     saveState(base, storage);
     expect(loadState(storage)).toEqual(base);
   });

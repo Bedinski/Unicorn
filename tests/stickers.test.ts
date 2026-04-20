@@ -76,10 +76,9 @@ describe("renderStickerBook", () => {
   it("shows progress x/threshold for locked stickers", () => {
     const progress: CategoryCorrect = { colors: 2 };
     const host = mount(renderStickerBook(progress, []));
-    const colors = host.querySelector(
-      ".sticker:nth-child(2) .sticker-status",
-    );
-    expect(colors?.textContent).toContain(`2/${STICKER_THRESHOLD}`);
+    const statuses = Array.from(host.querySelectorAll(".sticker-status"))
+      .map((el) => el.textContent ?? "");
+    expect(statuses).toContain(`2/${STICKER_THRESHOLD}`);
   });
 
   it("includes a close button", () => {

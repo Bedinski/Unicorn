@@ -472,6 +472,19 @@ body {
   grid-column: 1 / span 1;
 }
 
+/* ───── Curriculum week banner ───── */
+
+.week-banner {
+  background: #eef2ff;
+  border: 2px dashed var(--accent-soft);
+  color: var(--accent);
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: center;
+}
+
 /* ───── Top chips (streak + level) ───── */
 
 .top-chips {
