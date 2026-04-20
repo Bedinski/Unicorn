@@ -6,7 +6,8 @@ export type WordCategory =
   | "nature"
   | "size"
   | "body"
-  | "food";
+  | "food"
+  | "opposites";
 
 export interface Word {
   hanzi: string;
@@ -70,4 +71,19 @@ export const WORDS: readonly Word[] = [
   { hanzi: "米", english: "rice", pinyin: "mǐ", category: "food" },
   { hanzi: "茶", english: "tea", pinyin: "chá", category: "food" },
   { hanzi: "蛋", english: "egg", pinyin: "dàn", category: "food" },
+
+  { hanzi: "上", english: "up", pinyin: "shàng", category: "opposites" },
+  { hanzi: "下", english: "down", pinyin: "xià", category: "opposites" },
+  { hanzi: "多", english: "many", pinyin: "duō", category: "opposites" },
+  { hanzi: "少", english: "few", pinyin: "shǎo", category: "opposites" },
+  { hanzi: "长", english: "long", pinyin: "cháng", category: "opposites" },
+  { hanzi: "短", english: "short", pinyin: "duǎn", category: "opposites" },
+  { hanzi: "快", english: "fast", pinyin: "kuài", category: "opposites" },
+  { hanzi: "慢", english: "slow", pinyin: "màn", category: "opposites" },
+  { hanzi: "新", english: "new", pinyin: "xīn", category: "opposites" },
+  { hanzi: "旧", english: "old", pinyin: "jiù", category: "opposites" },
+  { hanzi: "冷", english: "cold", pinyin: "lěng", category: "opposites" },
+  { hanzi: "热", english: "hot", pinyin: "rè", category: "opposites" },
+  { hanzi: "好", english: "good", pinyin: "hǎo", category: "opposites" },
+  { hanzi: "坏", english: "bad", pinyin: "huài", category: "opposites" },
 ];
