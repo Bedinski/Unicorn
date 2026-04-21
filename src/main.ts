@@ -34,7 +34,7 @@ import {
 import { burst } from "@/ui/confetti";
 import { renderDrawBoard, wireDrawBoard } from "@/ui/drawBoard";
 import { cheerMessage, encourageMessage, flash } from "@/ui/feedback";
-import { renderKitty } from "@/ui/kitty";
+import { renderBabyKitty, renderKitty } from "@/ui/kitty";
 import {
   disableMatchChoices,
   markMatchChoice,
@@ -108,7 +108,14 @@ function render(): void {
     }
 
     <section class="kitty-stage" data-kitty-stage>
-      ${renderKitty(level)}
+      <div class="kitty-main">
+        ${renderKitty(level)}
+      </div>
+      <div class="kitty-babies" data-babies>
+        ${renderBabyKitty(level, 0)}
+        ${renderBabyKitty(level, 1)}
+        ${renderBabyKitty(level, 2)}
+      </div>
       ${max ? `<div class="max-banner" data-max-banner>🌟 You made your kitty MAGICAL! 🌟</div>` : ""}
     </section>
 

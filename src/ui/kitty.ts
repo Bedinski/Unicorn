@@ -347,3 +347,151 @@ function unicornHorn(): string {
           stroke="#b45309" stroke-width="1" fill="none"/>
   </g>`;
 }
+
+// ───── Baby kitties ─────
+
+export const BABY_VARIANTS = 3;
+
+interface BabyPalette {
+  body: string;
+  inner: string;
+  cheek: string;
+}
+
+const BABY_PALETTES: readonly BabyPalette[] = [
+  { body: "#cac2dd", inner: "#f7b6c2", cheek: "#ffb8c6" }, // lilac-gray
+  { body: "#ead7b0", inner: "#f0c09b", cheek: "#ffc1a0" }, // cream
+  { body: "#f5b38c", inner: "#ffd6bf", cheek: "#ff9a7a" }, // ginger
+];
+
+/**
+ * Render a baby kitty — smaller, chibi-style, sharing the same level-based
+ * magical features as the main kitty (collar, sparkle, hat, rainbow fur,
+ * horn) but with simplified art. `variant` picks a color palette (0..2).
+ * Babies share CSS class `kitty-svg` so their idle animations (breathing,
+ * tail sway, ear twitch, blink) inherit for free.
+ */
+export function renderBabyKitty(level: number, variant = 0): string {
+  const clamped = Math.max(1, Math.min(MAX_LEVEL, Math.floor(level)));
+  const v = ((variant % BABY_VARIANTS) + BABY_VARIANTS) % BABY_VARIANTS;
+  const palette = BABY_PALETTES[v];
+  const useRainbow = clamped >= 8;
+  const bodyFill = useRainbow ? "url(#rainbow-fur)" : palette.body;
+  const stroke = "#3a2a3a";
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 120 140"
+     data-kitty-baby
+     data-baby-variant="${v}"
+     data-kitty-level="${clamped}"
+     role="img"
+     aria-label="Baby kitty at level ${clamped}"
+     class="kitty-svg kitty-svg--baby baby-variant-${v}">
+  <!-- tail (behind body) -->
+  <g data-part="tail-group">
+    <path data-part="tail"
+          d="M 88 98
+             C 108 96, 116 72, 108 58
+             C 104 52, 100 52, 100 60
+             C 104 72, 100 84, 86 90 Z"
+          fill="${bodyFill}" stroke="${stroke}" stroke-width="1.5"/>
+  </g>
+
+  <!-- body -->
+  <g data-part="body-group">
+    <ellipse data-part="body" cx="60" cy="96" rx="26" ry="22"
+             fill="${bodyFill}" stroke="${stroke}" stroke-width="1.5"/>
+    <ellipse cx="60" cy="104" rx="14" ry="10" fill="#fff" opacity="0.7"/>
+  </g>
+
+  <!-- ears -->
+  <g data-part="ear-l-group">
+    <path d="M 36 48 Q 40 20 58 38 Q 54 48 46 54 Z"
+          fill="${bodyFill}" stroke="${stroke}" stroke-width="1.5"/>
+    <path d="M 42 44 Q 46 28 54 40 Q 51 46 46 50 Z" fill="${palette.inner}"/>
+  </g>
+  <g data-part="ear-r-group">
+    <path d="M 84 48 Q 80 20 62 38 Q 66 48 74 54 Z"
+          fill="${bodyFill}" stroke="${stroke}" stroke-width="1.5"/>
+    <path d="M 78 44 Q 74 28 66 40 Q 69 46 74 50 Z" fill="${palette.inner}"/>
+  </g>
+
+  <!-- head -->
+  <g data-part="head-group">
+    <path data-part="head"
+          d="M 30 62
+             C 30 42, 42 32, 60 32
+             C 78 32, 90 42, 90 62
+             C 90 80, 78 90, 60 90
+             C 42 90, 30 80, 30 62 Z"
+          fill="${bodyFill}" stroke="${stroke}" stroke-width="1.5"/>
+  </g>
+
+  <!-- face -->
+  <g data-face="neutral">
+    <ellipse cx="46" cy="74" rx="5" ry="3" fill="${palette.cheek}" opacity="0.7"/>
+    <ellipse cx="74" cy="74" rx="5" ry="3" fill="${palette.cheek}" opacity="0.7"/>
+    <g data-part="eye-l-group">
+      <circle data-part="eye-l" cx="50" cy="62" r="3.5" fill="#2d1b2a"/>
+      <circle cx="51" cy="60.5" r="1" fill="#fff"/>
+    </g>
+    <g data-part="eye-r-group">
+      <circle data-part="eye-r" cx="70" cy="62" r="3.5" fill="#2d1b2a"/>
+      <circle cx="71" cy="60.5" r="1" fill="#fff"/>
+    </g>
+    <ellipse cx="60" cy="72" rx="2" ry="1.4" fill="#f7709b"/>
+    <path d="M 56 76 Q 60 80 64 76" stroke="#3a2a3a" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+  </g>
+
+  ${clamped >= 2 ? babySparkle() : ""}
+  ${clamped >= 3 ? babyCollar() : ""}
+  ${clamped >= 5 ? babyHat() : ""}
+  ${clamped >= 7 ? babyWings(bodyFill) : ""}
+  ${clamped >= 10 ? babyHorn() : ""}
+</svg>`.trim();
+}
+
+function babySparkle(): string {
+  return `
+  <g data-baby-feature="sparkle">
+    <polygon points="90,18 92,23 97,23 93,26 94,31 90,28 86,31 87,26 83,23 88,23"
+             fill="#ffd93d" stroke="#b88a00" stroke-width="0.8"/>
+  </g>`;
+}
+
+function babyCollar(): string {
+  return `
+  <g data-baby-feature="collar">
+    <ellipse cx="60" cy="88" rx="20" ry="4" fill="#7c3aed" stroke="#3a003a" stroke-width="1"/>
+    <circle cx="60" cy="90" r="3" fill="#ec4899" stroke="#3a003a" stroke-width="1"/>
+  </g>`;
+}
+
+function babyHat(): string {
+  return `
+  <g data-baby-feature="hat">
+    <polygon points="60,0 44,36 76,36" fill="#4c1d95" stroke="#1e0a3c" stroke-width="1.2"/>
+    <ellipse cx="60" cy="36" rx="18" ry="3" fill="#6d28d9" stroke="#1e0a3c" stroke-width="1"/>
+    <polygon points="54,16 55,19 58,19 55.5,21 56.5,24 54,22 51.5,24 52.5,21 50,19 53,19" fill="#ffe066"/>
+  </g>`;
+}
+
+function babyWings(fill: string): string {
+  const tint = fill === "url(#rainbow-fur)" ? "#ffd6ff" : "#bae6fd";
+  return `
+  <g data-baby-feature="wings" opacity="0.85">
+    <path d="M 30 96 Q 8 72 12 112 Q 30 110 38 104 Z"
+          fill="${tint}" stroke="#38bdf8" stroke-width="1.2"/>
+    <path d="M 90 96 Q 112 72 108 112 Q 90 110 82 104 Z"
+          fill="${tint}" stroke="#38bdf8" stroke-width="1.2"/>
+  </g>`;
+}
+
+function babyHorn(): string {
+  return `
+  <g data-baby-feature="horn">
+    <polygon points="60,8 55,32 65,32" fill="#fde68a" stroke="#b45309" stroke-width="1"/>
+    <path d="M 57 28 L 63 22 M 56 26 L 62 20" stroke="#b45309" stroke-width="0.7" fill="none"/>
+  </g>`;
+}

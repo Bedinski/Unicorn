@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MAX_LEVEL } from "@/game/levels";
-import { renderKitty } from "@/ui/kitty";
+import { BABY_VARIANTS, renderBabyKitty, renderKitty } from "@/ui/kitty";
 
 function parse(svgString: string): SVGElement {
   const host = document.createElement("div");
@@ -133,5 +133,78 @@ describe("renderKitty", () => {
     }
     const neutral = svg.querySelector('[data-face="neutral"]');
     expect(neutral?.classList.contains("face-hidden")).toBe(false);
+  });
+});
+
+describe("renderBabyKitty", () => {
+  it("produces a kitty-svg marked as a baby with the level applied", () => {
+    const svg = parse(renderBabyKitty(1, 0));
+    expect(svg.getAttribute("data-kitty-baby")).not.toBeNull();
+    expect(svg.getAttribute("data-kitty-level")).toBe("1");
+    expect(svg.classList.contains("kitty-svg")).toBe(true);
+    expect(svg.classList.contains("kitty-svg--baby")).toBe(true);
+  });
+
+  it("renders three distinct variants via data-baby-variant and css class", () => {
+    for (let v = 0; v < BABY_VARIANTS; v++) {
+      const svg = parse(renderBabyKitty(1, v));
+      expect(svg.getAttribute("data-baby-variant")).toBe(String(v));
+      expect(svg.classList.contains(`baby-variant-${v}`)).toBe(true);
+    }
+  });
+
+  it("wraps the variant index so negative or oversized inputs still pick a palette", () => {
+    expect(parse(renderBabyKitty(1, -1)).getAttribute("data-baby-variant"))
+      .toBe("2");
+    expect(parse(renderBabyKitty(1, 5)).getAttribute("data-baby-variant"))
+      .toBe("2");
+  });
+
+  it("shares level-based magical features with the main kitty (cumulative layering)", () => {
+    const expectations: Array<[number, string]> = [
+      [2, "sparkle"],
+      [3, "collar"],
+      [5, "hat"],
+      [7, "wings"],
+      [10, "horn"],
+    ];
+    for (const [level, feature] of expectations) {
+      const svg = parse(renderBabyKitty(level, 0));
+      expect(
+        svg.querySelector(`[data-baby-feature="${feature}"]`),
+        `baby at level ${level} should have ${feature}`,
+      ).not.toBeNull();
+    }
+    // level 1 has none of them
+    const base = parse(renderBabyKitty(1, 0));
+    for (const feature of ["sparkle", "collar", "hat", "wings", "horn"]) {
+      expect(base.querySelector(`[data-baby-feature="${feature}"]`)).toBeNull();
+    }
+  });
+
+  it("uses the rainbow-fur gradient from level 8 onward", () => {
+    const seven = parse(renderBabyKitty(7, 0));
+    expect(seven.querySelector('[data-part="body"]')?.getAttribute("fill"))
+      .not.toContain("rainbow-fur");
+    const eight = parse(renderBabyKitty(8, 0));
+    expect(eight.querySelector('[data-part="body"]')?.getAttribute("fill"))
+      .toContain("rainbow-fur");
+  });
+
+  it("exposes idle-animation targets so it breathes, sways, blinks like the main", () => {
+    const svg = parse(renderBabyKitty(1, 0));
+    for (const part of [
+      "body-group",
+      "tail-group",
+      "ear-l-group",
+      "ear-r-group",
+      "eye-l-group",
+      "eye-r-group",
+    ]) {
+      expect(
+        svg.querySelector(`[data-part="${part}"]`),
+        `baby should have ${part}`,
+      ).not.toBeNull();
+    }
   });
 });
