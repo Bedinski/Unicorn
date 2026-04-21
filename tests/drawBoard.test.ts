@@ -46,17 +46,36 @@ describe("renderDrawBoard", () => {
 });
 
 describe("wireDrawBoard", () => {
-  it("Done fires onDone and reveals the reference", () => {
+  it("Done starts disabled so a blank-canvas tap cannot succeed", () => {
     const host = mount();
-    const handlers = {
-      onReplayAudio: vi.fn(),
-      onDone: vi.fn(),
-    };
-    wireDrawBoard(host, handlers);
+    wireDrawBoard(host, { onReplayAudio: vi.fn(), onDone: vi.fn() });
+    const done = host.querySelector<HTMLButtonElement>(
+      '[data-action="done"]',
+    )!;
+    expect(done.disabled).toBe(true);
+  });
 
+  it("tapping a disabled Done does not fire onDone or reveal the reference", () => {
+    const host = mount();
+    const handlers = { onReplayAudio: vi.fn(), onDone: vi.fn() };
+    wireDrawBoard(host, handlers);
     const ref = host.querySelector<HTMLElement>("[data-reference]")!;
-    expect(ref.hidden).toBe(true);
     host.querySelector<HTMLButtonElement>('[data-action="done"]')!.click();
+    expect(handlers.onDone).not.toHaveBeenCalled();
+    expect(ref.hidden).toBe(true);
+  });
+
+  it("Done fires onDone and reveals the reference once enabled", () => {
+    const host = mount();
+    const handlers = { onReplayAudio: vi.fn(), onDone: vi.fn() };
+    wireDrawBoard(host, handlers);
+    const ref = host.querySelector<HTMLElement>("[data-reference]")!;
+    const done = host.querySelector<HTMLButtonElement>(
+      '[data-action="done"]',
+    )!;
+    // Simulate the minimum-ink check enabling Done (jsdom has no real canvas)
+    done.disabled = false;
+    done.click();
     expect(handlers.onDone).toHaveBeenCalledTimes(1);
     expect(ref.hidden).toBe(false);
   });
@@ -67,6 +86,7 @@ describe("wireDrawBoard", () => {
     wireDrawBoard(host, handlers);
     const done = host.querySelector<HTMLButtonElement>('[data-action="done"]')!;
     const clear = host.querySelector<HTMLButtonElement>('[data-action="clear"]')!;
+    done.disabled = false;
     done.click();
     expect(done.disabled).toBe(true);
     expect(clear.disabled).toBe(true);
@@ -105,7 +125,11 @@ describe("wireDrawBoard", () => {
     const dispose = wireDrawBoard(host, handlers);
     dispose();
 
-    host.querySelector<HTMLButtonElement>('[data-action="done"]')!.click();
+    const done = host.querySelector<HTMLButtonElement>(
+      '[data-action="done"]',
+    )!;
+    done.disabled = false;
+    done.click();
     host.querySelector<HTMLButtonElement>("[data-replay]")!.click();
 
     expect(handlers.onDone).not.toHaveBeenCalled();

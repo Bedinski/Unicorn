@@ -553,10 +553,22 @@ body {
   border-color: var(--accent);
 }
 
+.draw-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .draw-btn--done {
   background: linear-gradient(135deg, #d1fae5, #a7f3d0);
   border-color: var(--correct);
   color: #065f46;
+}
+
+.draw-btn--done:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  border-color: #e5e7eb;
 }
 
 /* ───── Curriculum week banner ───── */

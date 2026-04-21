@@ -58,15 +58,24 @@ export function wireDrawBoard(
   }
 
   const disposers: Array<() => void> = [];
-  initCanvas(canvas, disposers);
+  const canvasCtrl = initCanvas(canvas, disposers, {
+    onInkStateChange: (hasInk) => {
+      doneBtn.disabled = !hasInk;
+    },
+  });
+
+  // Done starts disabled — child has to actually draw something before it
+  // enables. Prevents tap-Done-on-blank-canvas "wins".
+  doneBtn.disabled = true;
 
   const reference = root.querySelector<HTMLElement>("[data-reference]");
 
-  const onClear = () => clearCanvas(canvas);
+  const onClear = () => canvasCtrl.clear();
   clearBtn.addEventListener("click", onClear);
   disposers.push(() => clearBtn.removeEventListener("click", onClear));
 
   const onDone = () => {
+    if (doneBtn.disabled) return;
     if (reference) reference.hidden = false;
     doneBtn.disabled = true;
     clearBtn.disabled = true;
@@ -90,16 +99,32 @@ export function wireDrawBoard(
  * window resize, etc.). We explicitly do NOT set any inline style.width or
  * style.height so the CSS-driven responsive sizing keeps working.
  */
+interface InitCanvasHooks {
+  onInkStateChange: (hasInk: boolean) => void;
+}
+
+interface CanvasControls {
+  clear: () => void;
+}
+
+/** Minimum total path length (in canvas CSS units) before a drawing counts
+ *  as "real." Tuned so a careless scribble or single tap doesn't pass, but
+ *  any deliberate attempt at a character easily does. */
+const INK_THRESHOLD = 50;
+
 function initCanvas(
   canvas: HTMLCanvasElement,
   disposers: Array<() => void>,
-): void {
+  hooks: InitCanvasHooks,
+): CanvasControls {
   const state = {
     cssSize: 320,
     lastX: 0,
     lastY: 0,
     drawing: false,
   };
+  let totalInkLength = 0;
+  let emittedInked = false;
 
   const sync = () => {
     const ctx = canvas.getContext("2d");
@@ -147,8 +172,17 @@ function initCanvas(
     };
   };
 
+  const clear = (): void => {
+    clearCanvas(canvas);
+    totalInkLength = 0;
+    if (emittedInked) {
+      emittedInked = false;
+      hooks.onInkStateChange(false);
+    }
+  };
+
   const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  if (!ctx) return { clear };
 
   const onDown = (e: PointerEvent) => {
     state.drawing = true;
@@ -174,8 +208,15 @@ function initCanvas(
     ctx.moveTo(state.lastX, state.lastY);
     ctx.lineTo(x, y);
     ctx.stroke();
+    const dx = x - state.lastX;
+    const dy = y - state.lastY;
+    totalInkLength += Math.hypot(dx, dy);
     state.lastX = x;
     state.lastY = y;
+    if (!emittedInked && totalInkLength > INK_THRESHOLD) {
+      emittedInked = true;
+      hooks.onInkStateChange(true);
+    }
     e.preventDefault();
   };
 
@@ -201,6 +242,8 @@ function initCanvas(
     canvas.removeEventListener("pointercancel", onUp);
     canvas.removeEventListener("pointerleave", onUp);
   });
+
+  return { clear };
 }
 
 function clearCanvas(canvas: HTMLCanvasElement): void {
