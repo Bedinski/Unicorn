@@ -204,6 +204,7 @@ describe("resetKitty", () => {
     for (const h of ["貓", "狗", "魚", "羊", "馬"]) {
       s = recordAnswer(s, h, true).state;
     }
+    s = { ...s, selectedWeekStart: "2026-04-20" };
     const reset = resetKitty(s);
     expect(reset.xp).toBe(0);
     expect(reset.correctCount).toBe(0);
@@ -215,5 +216,12 @@ describe("resetKitty", () => {
     expect(reset.categoryCorrect).toEqual(s.categoryCorrect);
     expect(reset.bestStreak).toBe(s.bestStreak);
     expect(reset.recentHanzi).toEqual(s.recentHanzi);
+    expect(reset.selectedWeekStart).toBe("2026-04-20");
+  });
+});
+
+describe("selectedWeekStart", () => {
+  it("defaults to null", () => {
+    expect(initialState().selectedWeekStart).toBeNull();
   });
 });

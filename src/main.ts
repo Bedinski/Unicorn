@@ -3,8 +3,12 @@ import "./style.css";
 import {
   currentWeekSummary,
   drawPool,
+  poolsForWeek,
   recognitionPool,
+  weekByStart,
+  weekLabel,
 } from "@/game/curriculum";
+import { CURRICULUM } from "@/data/curriculum";
 import {
   MAX_LEVEL,
   isMaxLevel,
@@ -63,12 +67,27 @@ render();
 
 function nextRound(): Round {
   const kind = pickRoundType(Math.random, canSpeak());
-  const pool = kind === "draw" ? drawPool() : recognitionPool();
+  const { recognition, draw } = currentPools();
+  const pool = kind === "draw" ? draw : recognition;
   // Pool must have at least 3 entries so MCQ/Match can build distractors.
-  // drawPool may dip below 3 very early in the school year; upgrade to the
-  // recognition pool in that case.
-  const safePool = pool.length >= 3 ? pool : recognitionPool();
+  const safePool = pool.length >= 3 ? pool : recognition.length >= 3 ? recognition : recognitionPool();
   return buildRound(safePool, state.recentHanzi, Math.random, kind);
+}
+
+/**
+ * The active practice pools. If the player has selected a curriculum week
+ * to focus on (test-prep mode) we narrow both pools to that week's
+ * content; otherwise we fall back to the taught-so-far pools.
+ */
+function currentPools(): { recognition: ReturnType<typeof recognitionPool>; draw: ReturnType<typeof drawPool> } {
+  if (state.selectedWeekStart) {
+    const week = weekByStart(state.selectedWeekStart);
+    if (week) {
+      const { recognitionPool: recog, drawPool: drawn } = poolsForWeek(week);
+      return { recognition: recog, draw: drawn };
+    }
+  }
+  return { recognition: recognitionPool(), draw: drawPool() };
 }
 
 function render(): void {
@@ -106,6 +125,14 @@ function render(): void {
         ? `<div class="week-banner" data-week>📖 ${currentWeekSummary()}</div>`
         : ""
     }
+
+    <section class="practice-select" aria-label="Practice focus">
+      <label class="practice-select-label" for="practice-week">🎯 Practice:</label>
+      <select id="practice-week" class="practice-select-input" data-practice-select>
+        <option value=""${state.selectedWeekStart ? "" : " selected"}>Everything taught so far</option>
+        ${renderWeekOptions()}
+      </select>
+    </section>
 
     <section class="kitty-stage" data-kitty-stage>
       <div class="kitty-main">
@@ -176,6 +203,26 @@ function earnedCategoriesList() {
   );
 }
 
+function renderWeekOptions(): string {
+  const todayIsoStr = isoToday();
+  return CURRICULUM.map((w) => {
+    const selected = state.selectedWeekStart === w.startDate ? " selected" : "";
+    const current = todayIsoStr >= w.startDate && todayIsoStr <= w.endDate;
+    const star = current ? " ★" : "";
+    const type = w.type === "dictation" ? "✍️" : "📖";
+    const label = weekLabel(w);
+    return `<option value="${w.startDate}"${selected}>${type} ${label}${star}</option>`;
+  }).join("");
+}
+
+function isoToday(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = `${now.getMonth() + 1}`.padStart(2, "0");
+  const d = `${now.getDate()}`.padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function renderRoundBoard(r: Round): string {
   if (r.kind === "mcq") return renderBoard(r);
   if (r.kind === "draw") return renderDrawBoard(r);
@@ -214,6 +261,21 @@ function wireFooter(): void {
       stickerBookOpen = true;
       render();
     });
+  app!
+    .querySelector<HTMLSelectElement>("[data-practice-select]")
+    ?.addEventListener("change", onPracticeWeekChange);
+}
+
+function onPracticeWeekChange(event: Event): void {
+  const select = event.target as HTMLSelectElement;
+  const value = select.value || null;
+  if (value === state.selectedWeekStart) return;
+  state = { ...state, selectedWeekStart: value };
+  saveState(state);
+  round = nextRound();
+  isNewWord = !state.seenHanzi.includes(round.answer.hanzi);
+  locked = false;
+  render();
 }
 
 function wireStickerBook(): void {

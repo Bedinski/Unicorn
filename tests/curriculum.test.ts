@@ -3,10 +3,14 @@ import {
   currentWeek,
   currentWeekSummary,
   drawPool,
+  poolsForWeek,
   recognitionPool,
   taughtCategories,
   taughtDictation,
+  weekByStart,
+  weekLabel,
 } from "@/game/curriculum";
+import { CURRICULUM } from "@/data/curriculum";
 
 describe("curriculum schedule helpers", () => {
   it("currentWeek returns the active week when inside its range", () => {
@@ -68,5 +72,62 @@ describe("curriculum schedule helpers", () => {
     expect(s).toMatch(/opposites/i);
     const d = currentWeekSummary(new Date(2026, 1, 10));
     expect(d).toMatch(/大/);
+  });
+});
+
+describe("week selection helpers", () => {
+  it("weekByStart finds weeks by their ISO startDate", () => {
+    const w = weekByStart("2026-04-20");
+    expect(w).not.toBeNull();
+    expect(w!.type).toBe("recognition");
+    expect(weekByStart("1999-01-01")).toBeNull();
+  });
+
+  it("weekLabel produces a readable label with a short date prefix", () => {
+    const dict = CURRICULUM.find((w) => w.startDate === "2026-02-09")!;
+    const l1 = weekLabel(dict);
+    expect(l1).toContain("Feb 9");
+    expect(l1).toContain("大");
+
+    const recog = CURRICULUM.find((w) => w.startDate === "2026-04-20")!;
+    const l2 = weekLabel(recog);
+    expect(l2).toContain("Apr 20");
+    expect(l2.toLowerCase()).toContain("opposites");
+  });
+});
+
+describe("poolsForWeek", () => {
+  it("a recognition week pool only contains words from its categories", () => {
+    const w = weekByStart("2026-04-20")!; // opposites
+    const { recognitionPool: recog } = poolsForWeek(w);
+    expect(recog.length).toBeGreaterThan(0);
+    expect(recog.every((word) => word.category === "opposites")).toBe(true);
+  });
+
+  it("a recognition week's draw pool prefers single characters", () => {
+    const w = weekByStart("2026-04-20")!;
+    const { drawPool: drawn } = poolsForWeek(w);
+    expect(drawn.length).toBeGreaterThan(0);
+    expect(drawn.every((word) => [...word.hanzi].length === 1)).toBe(true);
+  });
+
+  it("a dictation week pool contains exactly the listed characters", () => {
+    const w = weekByStart("2026-04-13")!; // 我 你 牛 羊 兔 狗 吃
+    const { recognitionPool: recog, drawPool: drawn } = poolsForWeek(w);
+    expect(recog.map((x) => x.hanzi).sort()).toEqual(
+      ["我", "你", "牛", "羊", "兔", "狗", "吃"].sort(),
+    );
+    expect(drawn.map((x) => x.hanzi).sort()).toEqual(
+      ["我", "你", "牛", "羊", "兔", "狗", "吃"].sort(),
+    );
+  });
+
+  it("dictation week pool entries carry english + pinyin (via Word or Dictation lookup)", () => {
+    const w = weekByStart("2026-04-13")!;
+    const { recognitionPool: recog } = poolsForWeek(w);
+    for (const entry of recog) {
+      expect(entry.english.length).toBeGreaterThan(0);
+      expect(entry.pinyin.length).toBeGreaterThan(0);
+    }
   });
 });

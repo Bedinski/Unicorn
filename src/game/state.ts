@@ -18,6 +18,9 @@ export interface GameState {
   seenHanzi: string[];
   stars: DailyStars;
   categoryCorrect: CategoryCorrect;
+  /** ISO start date of the curriculum week the child picked to focus on, or
+   *  null for "free play" (cumulative-through-today). */
+  selectedWeekStart: string | null;
 }
 
 export const RECENT_MEMORY = 4;
@@ -55,6 +58,7 @@ export function initialState(): GameState {
     seenHanzi: [],
     stars: { date: todayIso(), count: 0 },
     categoryCorrect: {},
+    selectedWeekStart: null,
   };
 }
 
@@ -142,6 +146,7 @@ export function recordAnswer(
     seenHanzi,
     stars: { date: today, count: nextStarCount },
     categoryCorrect,
+    selectedWeekStart: state.selectedWeekStart,
   };
 
   const newLevel = levelForXp(nextState.xp);
@@ -167,6 +172,7 @@ export function resetKitty(state: GameState): GameState {
     stars: state.stars,
     categoryCorrect: state.categoryCorrect,
     bestStreak: state.bestStreak,
+    selectedWeekStart: state.selectedWeekStart,
   };
 }
 

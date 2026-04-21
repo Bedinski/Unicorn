@@ -42,6 +42,10 @@ function mergeWithDefaults(partial: Partial<GameState>): GameState {
       partial.categoryCorrect && typeof partial.categoryCorrect === "object"
         ? { ...partial.categoryCorrect }
         : base.categoryCorrect,
+    selectedWeekStart:
+      typeof partial.selectedWeekStart === "string"
+        ? partial.selectedWeekStart
+        : base.selectedWeekStart,
   };
   return merged;
 }

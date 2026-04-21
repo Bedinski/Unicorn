@@ -95,3 +95,76 @@ export function currentWeekSummary(
 function prettyCategory(c: string): string {
   return c.replace(/_/g, " ");
 }
+
+/** Look up a curriculum week by its startDate (ISO). */
+export function weekByStart(startDate: string): AssessmentWeek | null {
+  return CURRICULUM.find((w) => w.startDate === startDate) ?? null;
+}
+
+/** Short human label for the selector, e.g. "Apr 20 · Opposites" or
+ *  "Apr 13 · 我 你 牛 羊 兔 狗 吃". */
+export function weekLabel(week: AssessmentWeek): string {
+  const date = shortDate(week.startDate);
+  if (week.type === "recognition") {
+    const cats = week.content.map(prettyCategory).join(" · ");
+    return `${date} · ${titleCase(cats)}`;
+  }
+  return `${date} · ${week.content.join(" ")}`;
+}
+
+function shortDate(iso: string): string {
+  const [, m, d] = iso.split("-").map((n) => parseInt(n, 10));
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  return `${months[m - 1]} ${d}`;
+}
+
+function titleCase(s: string): string {
+  return s
+    .split(" ")
+    .map((t) => (t ? t[0].toUpperCase() + t.slice(1) : t))
+    .join(" ");
+}
+
+/**
+ * Compute the recognition + draw pools for a specific week, used when the
+ * player narrows practice to one week ("test prep" mode). For recognition
+ * weeks (categories), both pools draw from the vocabulary in those
+ * categories. For dictation weeks (specific characters), both pools draw
+ * from the listed characters — using the matching Word entry when one
+ * exists, otherwise synthesizing one from the DictationEntry so the round
+ * still has english + pinyin.
+ */
+export function poolsForWeek(week: AssessmentWeek): {
+  recognitionPool: Word[];
+  drawPool: Word[];
+} {
+  if (week.type === "recognition") {
+    const cats = new Set(week.content as WordCategory[]);
+    const recog = WORDS.filter((w) => cats.has(w.category));
+    // Draw pool during a recognition week prefers single-character words so
+    // kids have something concrete to write; compound words fall back only if
+    // there aren't enough singles to build rounds.
+    const singles = recog.filter((w) => [...w.hanzi].length === 1);
+    const drawPool = singles.length >= 3 ? singles : recog;
+    return { recognitionPool: recog, drawPool };
+  }
+  // Dictation week: content is a list of specific hanzi strings.
+  const wordByHanzi = new Map(WORDS.map((w) => [w.hanzi, w]));
+  const dictByHanzi = new Map(DICTATION.map((d) => [d.hanzi, d]));
+  const pool: Word[] = week.content.map((h) => {
+    const w = wordByHanzi.get(h);
+    if (w) return w;
+    const d = dictByHanzi.get(h) as DictationEntry | undefined;
+    return {
+      hanzi: h,
+      english: d?.english ?? h,
+      pinyin: d?.pinyin ?? "",
+      category: "school" as WordCategory,
+      isBonus: d?.isBonus,
+    };
+  });
+  return { recognitionPool: pool, drawPool: pool };
+}
