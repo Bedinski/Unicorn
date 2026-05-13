@@ -46,6 +46,10 @@ function mergeWithDefaults(partial: Partial<GameState>): GameState {
       typeof partial.selectedWeekStart === "string"
         ? partial.selectedWeekStart
         : base.selectedWeekStart,
+    teacherMode:
+      typeof partial.teacherMode === "boolean"
+        ? partial.teacherMode
+        : base.teacherMode,
   };
   return merged;
 }

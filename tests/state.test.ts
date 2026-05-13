@@ -225,3 +225,20 @@ describe("selectedWeekStart", () => {
     expect(initialState().selectedWeekStart).toBeNull();
   });
 });
+
+describe("teacherMode", () => {
+  it("defaults to false", () => {
+    expect(initialState().teacherMode).toBe(false);
+  });
+
+  it("is preserved through recordAnswer", () => {
+    const s0 = { ...initialState(), teacherMode: true };
+    const r = recordAnswer(s0, "貓", true);
+    expect(r.state.teacherMode).toBe(true);
+  });
+
+  it("is preserved through resetKitty", () => {
+    const s = { ...initialState(), teacherMode: true };
+    expect(resetKitty(s).teacherMode).toBe(true);
+  });
+});

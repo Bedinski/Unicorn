@@ -45,6 +45,7 @@ import {
   matchChoiceFromEvent,
   renderMatchBoard,
 } from "@/ui/matchBoard";
+import { renderTeacherCard, wireTeacherCard } from "@/ui/teacherCard";
 import { canSpeak, speakEn, speakZh } from "@/ui/speech";
 import {
   STICKERS,
@@ -63,7 +64,20 @@ let locked = false;
 let disposeBoard: (() => void) | null = null;
 let stickerBookOpen = false;
 
+// Teacher-mode deck state (ephemeral; rebuilt whenever practice scope changes).
+let teacherDeck: import("@/data/words").Word[] = [];
+let teacherIndex = 0;
+if (state.teacherMode) rebuildTeacherDeck();
+
 render();
+
+function rebuildTeacherDeck(): void {
+  const { draw } = currentPools();
+  // Preserve curriculum order; no shuffle so the parent can predict what's
+  // coming and a child can re-do specific cards via the Previous button.
+  teacherDeck = draw.slice();
+  teacherIndex = 0;
+}
 
 function nextRound(): Round {
   const kind = pickRoundType(Math.random, canSpeak());
@@ -101,7 +115,15 @@ function render(): void {
     nextXp === 0 ? 100 : Math.round((levelXp / nextXp) * 100);
   const max = isMaxLevel(state.xp);
 
-  const boardHtml = renderRoundBoard(round);
+  const teacherMode = state.teacherMode;
+  const currentTeacherWord =
+    teacherMode && teacherIndex < teacherDeck.length
+      ? teacherDeck[teacherIndex]
+      : null;
+
+  const boardHtml = teacherMode
+    ? renderTeacherCard(currentTeacherWord, teacherIndex, teacherDeck.length)
+    : renderRoundBoard(round);
   const { earnedCount, total } = stickerSummary(state.categoryCorrect);
   const starsPct = Math.min(
     100,
@@ -127,11 +149,18 @@ function render(): void {
     }
 
     <section class="practice-select" aria-label="Practice focus">
-      <label class="practice-select-label" for="practice-week">🎯 Practice:</label>
-      <select id="practice-week" class="practice-select-input" data-practice-select>
-        <option value=""${state.selectedWeekStart ? "" : " selected"}>Everything taught so far</option>
-        ${renderWeekOptions()}
-      </select>
+      <div class="practice-row">
+        <label class="practice-select-label" for="practice-week">🎯 Practice:</label>
+        <select id="practice-week" class="practice-select-input" data-practice-select>
+          <option value=""${state.selectedWeekStart ? "" : " selected"}>Everything taught so far</option>
+          ${renderWeekOptions()}
+        </select>
+      </div>
+      <button class="teacher-toggle ${state.teacherMode ? "teacher-toggle--on" : ""}"
+              data-teacher-toggle type="button"
+              aria-pressed="${state.teacherMode}">
+        ${state.teacherMode ? "🎮 Back to Game" : "👨‍🏫 Teacher Mode (Dictation)"}
+      </button>
     </section>
 
     <section class="kitty-stage" data-kitty-stage>
@@ -146,6 +175,10 @@ function render(): void {
       ${max ? `<div class="max-banner" data-max-banner>🌟 You made your kitty MAGICAL! 🌟</div>` : ""}
     </section>
 
+    ${
+      teacherMode
+        ? ""
+        : `
     <section class="progress" aria-label="Level progress">
       <div class="progress-bar">
         <div class="progress-fill" style="width:${progressPct}%"></div>
@@ -163,27 +196,30 @@ function render(): void {
       <div class="daily-goal-bar">
         <div class="daily-goal-fill" style="width:${starsPct}%"></div>
       </div>
-    </section>
+    </section>`
+    }
 
-    <section class="board board--${round.kind}" data-board>
+    <section class="board board--${teacherMode ? "teacher" : round.kind}" data-board>
       ${
-        isNewWord
+        !teacherMode && isNewWord
           ? `<div class="new-badge" data-new-badge>✨ NEW WORD!</div>`
           : ""
       }
       ${boardHtml}
     </section>
 
-    <section class="feedback" data-feedback aria-live="polite"></section>
+    ${teacherMode ? "" : `<section class="feedback" data-feedback aria-live="polite"></section>`}
 
     <footer class="bottom-bar">
       <button class="sticker-btn" data-open-stickers type="button" aria-label="Open sticker book">
         🏅 <span class="sticker-count">${earnedCount}/${total}</span>
       </button>
       ${
-        max
-          ? `<button class="reset-btn" data-reset type="button">🐱 New Kitty</button>`
-          : `<span class="score">✅ ${state.correctCount} &nbsp; 💭 ${state.incorrectCount}</span>`
+        teacherMode
+          ? ""
+          : max
+            ? `<button class="reset-btn" data-reset type="button">🐱 New Kitty</button>`
+            : `<span class="score">✅ ${state.correctCount} &nbsp; 💭 ${state.incorrectCount}</span>`
       }
     </footer>
     ${stickerBookOpen ? renderStickerBook(state.categoryCorrect, earnedCategoriesList()) : ""}
@@ -194,7 +230,11 @@ function render(): void {
   if (stickerBookOpen) wireStickerBook();
 
   // Speak the prompt after a tiny delay so voices are loaded on first paint.
-  window.setTimeout(() => speakZh(round.answer.hanzi), 120);
+  // (In teacher mode wireBoard handles its own deferred speak for the
+  // active card, so we skip the round-based one.)
+  if (!state.teacherMode) {
+    window.setTimeout(() => speakZh(round.answer.hanzi), 120);
+  }
 }
 
 function earnedCategoriesList() {
@@ -231,6 +271,35 @@ function renderRoundBoard(r: Round): string {
 
 function wireBoard(): void {
   const boardEl = app!.querySelector<HTMLElement>("[data-board]")!;
+  if (state.teacherMode) {
+    disposeBoard = wireTeacherCard(boardEl, {
+      onListen: () => {
+        const w = teacherDeck[teacherIndex];
+        if (w) speakZh(w.hanzi);
+      },
+      onNext: () => {
+        teacherIndex++;
+        render();
+      },
+      onPrev: () => {
+        if (teacherIndex > 0) {
+          teacherIndex--;
+          render();
+        }
+      },
+      onRestart: () => {
+        rebuildTeacherDeck();
+        render();
+      },
+    });
+    // Speak the current card's hanzi shortly after render so the
+    // teacher/parent hears the prompt without tapping.
+    const currentCard = teacherDeck[teacherIndex];
+    if (currentCard) {
+      window.setTimeout(() => speakZh(currentCard.hanzi), 150);
+    }
+    return;
+  }
   if (round.kind === "mcq") {
     boardEl.addEventListener("click", onMcqClick);
     boardEl
@@ -264,6 +333,18 @@ function wireFooter(): void {
   app!
     .querySelector<HTMLSelectElement>("[data-practice-select]")
     ?.addEventListener("change", onPracticeWeekChange);
+  app!
+    .querySelector<HTMLButtonElement>("[data-teacher-toggle]")
+    ?.addEventListener("click", onToggleTeacherMode);
+}
+
+function onToggleTeacherMode(): void {
+  const next = !state.teacherMode;
+  state = { ...state, teacherMode: next };
+  saveState(state);
+  if (next) rebuildTeacherDeck();
+  locked = false;
+  render();
 }
 
 function onPracticeWeekChange(event: Event): void {
@@ -272,8 +353,12 @@ function onPracticeWeekChange(event: Event): void {
   if (value === state.selectedWeekStart) return;
   state = { ...state, selectedWeekStart: value };
   saveState(state);
-  round = nextRound();
-  isNewWord = !state.seenHanzi.includes(round.answer.hanzi);
+  if (state.teacherMode) {
+    rebuildTeacherDeck();
+  } else {
+    round = nextRound();
+    isNewWord = !state.seenHanzi.includes(round.answer.hanzi);
+  }
   locked = false;
   render();
 }

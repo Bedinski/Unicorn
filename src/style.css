@@ -639,12 +639,18 @@ body {
 
 .practice-select {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 10px;
   background: var(--card);
   padding: 10px 14px;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+}
+
+.practice-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .practice-select-label {
@@ -672,6 +678,191 @@ body {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+}
+
+.teacher-toggle {
+  background: #faf7ff;
+  border: 2px solid var(--accent-soft);
+  color: var(--accent);
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.teacher-toggle:hover,
+.teacher-toggle:focus-visible {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+}
+
+.teacher-toggle--on {
+  background: linear-gradient(135deg, #fde68a, #fbbf24);
+  border-color: #d97706;
+  color: #78350f;
+}
+
+/* ───── Teacher-mode flashcard ───── */
+
+.board--teacher {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.teacher-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.teacher-progress-text {
+  font-size: 0.9rem;
+  color: #6b4a9a;
+  font-weight: 700;
+  text-align: center;
+}
+
+.teacher-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--accent-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.teacher-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed, #ec4899, #f59e0b);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.teacher-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.teacher-card-emoji {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.teacher-hanzi {
+  font-size: clamp(5rem, 24vw, 9rem);
+  line-height: 1.05;
+  color: var(--ink);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.teacher-pinyin {
+  font-size: clamp(1.1rem, 4vw, 1.5rem);
+  color: #6b4a9a;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.teacher-english {
+  font-size: clamp(1.05rem, 4vw, 1.3rem);
+  color: var(--accent);
+  font-weight: 700;
+  font-style: italic;
+}
+
+.teacher-instruction {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  color: #6b4a9a;
+}
+
+.teacher-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.teacher-btn {
+  background: var(--card);
+  color: var(--ink);
+  border: 3px solid var(--accent-soft);
+  padding: 14px 12px;
+  border-radius: var(--radius);
+  font-size: clamp(1rem, 3.4vw, 1.15rem);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.teacher-btn:hover:not(:disabled),
+.teacher-btn:focus-visible:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.teacher-btn--listen {
+  background: #ddd6fe;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.teacher-btn--next {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  border-color: var(--correct);
+  color: #065f46;
+}
+
+.teacher-btn--prev {
+  margin-top: 8px;
+  width: 100%;
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #6b7280;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+}
+
+.teacher-btn--restart {
+  width: 100%;
+  margin-top: 10px;
+  background: linear-gradient(135deg, #fde68a, #fbbf24);
+  border-color: #d97706;
+  color: #78350f;
+}
+
+.teacher-card--empty,
+.teacher-card--complete {
+  padding: 32px 18px;
+}
+
+.teacher-card--complete .teacher-card-emoji {
+  font-size: 3rem;
+}
+
+.teacher-card-message {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.teacher-card-hint {
+  font-size: 0.95rem;
+  color: #6b4a9a;
 }
 
 /* ───── Top chips (streak + level) ───── */

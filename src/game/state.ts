@@ -21,6 +21,9 @@ export interface GameState {
   /** ISO start date of the curriculum week the child picked to focus on, or
    *  null for "free play" (cumulative-through-today). */
   selectedWeekStart: string | null;
+  /** When true, the app shows a flashcard view for dictation practice
+   *  instead of the round-based game. No XP / streaks update in this mode. */
+  teacherMode: boolean;
 }
 
 export const RECENT_MEMORY = 4;
@@ -59,6 +62,7 @@ export function initialState(): GameState {
     stars: { date: todayIso(), count: 0 },
     categoryCorrect: {},
     selectedWeekStart: null,
+    teacherMode: false,
   };
 }
 
@@ -147,6 +151,7 @@ export function recordAnswer(
     stars: { date: today, count: nextStarCount },
     categoryCorrect,
     selectedWeekStart: state.selectedWeekStart,
+    teacherMode: state.teacherMode,
   };
 
   const newLevel = levelForXp(nextState.xp);
@@ -173,6 +178,7 @@ export function resetKitty(state: GameState): GameState {
     categoryCorrect: state.categoryCorrect,
     bestStreak: state.bestStreak,
     selectedWeekStart: state.selectedWeekStart,
+    teacherMode: state.teacherMode,
   };
 }
 
