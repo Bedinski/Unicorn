@@ -72,10 +72,14 @@ if (state.teacherMode) rebuildTeacherDeck();
 render();
 
 function rebuildTeacherDeck(): void {
-  const { draw } = currentPools();
+  // Use the recognition pool so teacher mode includes every word in scope
+  // (compounds like 耳朵 / 你好 too), not just single characters. The draw
+  // pool's single-char filter exists for in-app Draw rounds; on paper the
+  // child can write any word, so it doesn't apply here.
+  const { recognition } = currentPools();
   // Preserve curriculum order; no shuffle so the parent can predict what's
   // coming and a child can re-do specific cards via the Previous button.
-  teacherDeck = draw.slice();
+  teacherDeck = recognition.slice();
   teacherIndex = 0;
 }
 
