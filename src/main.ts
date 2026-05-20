@@ -292,12 +292,8 @@ function wireBoard(): void {
         render();
       },
     });
-    // Speak the current card's hanzi shortly after render so the
-    // teacher/parent hears the prompt without tapping.
-    const currentCard = teacherDeck[teacherIndex];
-    if (currentCard) {
-      window.setTimeout(() => speakZh(currentCard.hanzi), 150);
-    }
+    // Teacher mode: audio only plays when the Listen button is pressed,
+    // so the parent can preview the card silently first.
     return;
   }
   if (round.kind === "mcq") {
