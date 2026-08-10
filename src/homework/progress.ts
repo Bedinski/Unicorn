@@ -27,7 +27,8 @@ function initialPayload(): ProgressPayload {
   return { version: 1, assignments: {}, session: null };
 }
 
-const SESSION_PHASES = new Set(["learn", "practice", "recall", "review", "complete"]);
+const SESSION_PHASES = new Set(["quiz", "review", "complete"]);
+const QUESTION_KINDS = new Set(["listen-choice", "hanzi-meaning", "meaning-hanzi"]);
 
 function nonNegativeInteger(value: unknown): number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : 0;
@@ -35,6 +36,17 @@ function nonNegativeInteger(value: unknown): number {
 
 function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function normalizeQuestion(value: unknown): HomeworkSession["queue"][number] | null {
+  if (!value || typeof value !== "object") return null;
+  const question = value as Partial<HomeworkSession["queue"][number]>;
+  if (
+    typeof question.id !== "string" ||
+    typeof question.itemId !== "string" ||
+    !QUESTION_KINDS.has(question.kind ?? "")
+  ) return null;
+  return { id: question.id, itemId: question.itemId, kind: question.kind! };
 }
 
 function normalizeItemProgress(value: unknown): ItemProgress | null {
@@ -70,15 +82,16 @@ function normalizeSession(value: unknown): HomeworkSession | null {
   if (!value || typeof value !== "object") return null;
   const session = value as Partial<HomeworkSession>;
   if (
-    session.version !== 1 ||
+    session.version !== 2 ||
     typeof session.assignmentId !== "string" ||
     !SESSION_PHASES.has(session.phase ?? "") ||
     !Array.isArray(session.queue) ||
-    !session.queue.every((item) => typeof item === "string") ||
     typeof session.position !== "number" ||
     !Number.isInteger(session.position) ||
     session.position < 0
   ) return null;
+  const queue = session.queue.map(normalizeQuestion);
+  if (queue.some((question) => question === null)) return null;
   if (
     (session.phase === "complete" && session.queue.length !== 0) ||
     (session.phase !== "complete" && session.position >= session.queue.length)
@@ -90,17 +103,23 @@ function normalizeSession(value: unknown): HomeworkSession | null {
     }
   }
   return {
-    version: 1,
+    version: 2,
     assignmentId: session.assignmentId,
     missionItemIds: stringArray(session.missionItemIds).length > 0
       ? stringArray(session.missionItemIds)
-      : [...new Set([...session.queue, ...stringArray(session.missed), ...stringArray(session.needsWork)])],
+      : [...new Set([
+          ...queue.map((question) => question!.itemId),
+          ...stringArray(session.missed),
+          ...stringArray(session.needsWork),
+        ])],
     phase: session.phase!,
-    queue: session.queue,
+    queue: queue as HomeworkSession["queue"],
     position: session.position,
     missed: stringArray(session.missed),
     needsWork: stringArray(session.needsWork),
     reviewAttempts,
+    answeredQuestions: nonNegativeInteger(session.answeredQuestions),
+    correctAnswers: nonNegativeInteger(session.correctAnswers),
   };
 }
 
@@ -154,9 +173,8 @@ export class HomeworkProgressStore {
       const itemProgress = current.items[item.id];
       if (!itemProgress) return false;
       return (
-        (!item.skills.includes("learn") || itemProgress.learned) &&
-        (!item.skills.includes("write") || itemProgress.writingPractices > 0) &&
-        (!item.skills.includes("recall") || itemProgress.recallCorrect > 0)
+        itemProgress.learned &&
+        itemProgress.recallCorrect > 0
       );
     });
     const completed: AssignmentProgress = {

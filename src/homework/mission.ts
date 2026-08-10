@@ -3,11 +3,11 @@ import type { AssignmentProgress, ItemProgress } from "./progress";
 
 export const MISSION_ITEM_LIMIT = 3;
 
-function masteryScore(item: HomeworkItem, progress: ItemProgress | undefined): number {
+function masteryScore(progress: ItemProgress | undefined): number {
   if (!progress) return 0;
   let score = progress.learned ? 1 : 0;
-  if (!item.skills.includes("write") || progress.writingPractices > 0) score += 1;
-  if (!item.skills.includes("recall") || progress.recallCorrect > 0) score += 1;
+  if (progress.recallCorrect > 0) score += 1;
+  if (progress.recallCorrect > 1) score += 1;
   if (progress.recallIncorrect > progress.recallCorrect) score -= 1;
   return score;
 }
@@ -29,7 +29,7 @@ export function planMissionItems(
   }));
   return indexed
     .sort((a, b) => {
-      const mastery = masteryScore(a.item, a.progress) - masteryScore(b.item, b.progress);
+      const mastery = masteryScore(a.progress) - masteryScore(b.progress);
       if (mastery !== 0) return mastery;
       const recency = (a.progress?.lastPracticed ?? "").localeCompare(b.progress?.lastPracticed ?? "");
       return recency !== 0 ? recency : a.index - b.index;

@@ -1,4 +1,5 @@
 import { speakZh } from "@/ui/speech";
+import { WORDS } from "@/data/words";
 import {
   customAssignmentId,
   parseHomeworkRows,
@@ -15,11 +16,13 @@ import {
 import { HomeworkProgressStore } from "./progress";
 import { HomeworkRepository, recommendedAssignment } from "./repository";
 import {
-  advanceHomeworkSession,
   currentSessionItemId,
-  gradeHomeworkRecall,
+  currentSessionQuestion,
+  gradeHomeworkAnswer,
   phaseLabel,
   startHomeworkSession,
+  type HomeworkQuestion,
+  type HomeworkQuestionKind,
   type HomeworkSession,
 } from "./session";
 
@@ -42,6 +45,11 @@ interface AuthorValues {
   editingId: string | null;
 }
 
+interface AnswerFeedback {
+  selectedValue: string;
+  correct: boolean;
+}
+
 export class HomeworkApp {
   private readonly repository: HomeworkRepository;
   private readonly progress: HomeworkProgressStore;
@@ -49,7 +57,7 @@ export class HomeworkApp {
   private screen: HomeworkScreen = "home";
   private selectedAssignmentId: string | null = null;
   private session: HomeworkSession | null = null;
-  private answerRevealed = false;
+  private answerFeedback: AnswerFeedback | null = null;
   private authorIssues: ValidationIssue[] = [];
   private authorPreview: HomeworkAssignment | null = null;
   private authorValues: AuthorValues;
@@ -204,12 +212,17 @@ export class HomeworkApp {
           <div class="garden-progress" aria-label="Garden progress, stage ${garden.stage + 1} of 6">
             ${Array.from({ length: 6 }, (_, index) => `<span class="${index <= garden.stage ? "garden-progress--grown" : ""}"></span>`).join("")}
           </div>
-          <ol class="homework-path" aria-label="Homework steps">
-            <li><span>1</span><strong>Learn</strong><small>See and hear</small></li>
-            <li><span>2</span><strong>Write</strong><small>Practice on paper</small></li>
-            <li><span>3</span><strong>Remember</strong><small>Try without peeking</small></li>
-            <li><span>4</span><strong>Review</strong><small>Fix missed words</small></li>
-          </ol>
+          <section class="practice-mix" aria-label="Question types">
+            <div class="practice-mix-heading">
+              <strong>Answer from the very first screen</strong>
+              <span>Questions change every turn. Missed words come back.</span>
+            </div>
+            <ul>
+              <li><span aria-hidden="true">🔊</span><strong>Listen & pick</strong></li>
+              <li><span aria-hidden="true">字</span><strong>Pick the meaning</strong></li>
+              <li><span aria-hidden="true">⚡</span><strong>Pick the character</strong></li>
+            </ul>
+          </section>
         </section>
       </main>`;
   }
@@ -224,19 +237,19 @@ export class HomeworkApp {
     }
     if (session.phase === "complete") return this.renderSummary(assignment, session);
 
-    const itemId = currentSessionItemId(session);
+    const question = currentSessionQuestion(session);
+    const itemId = question?.itemId ?? null;
     const item = assignment.items.find((candidate) => candidate.id === itemId);
-    if (!item) return this.renderSummary(assignment, session);
+    if (!item || !question) return this.renderSummary(assignment, session);
     const pct = session.queue.length === 0
       ? 100
       : Math.round(((session.position + 1) / session.queue.length) * 100);
-    const stepNumber = session.phase === "learn" ? 1 : session.phase === "practice" ? 2 : session.phase === "recall" ? 3 : 4;
 
     return `<main class="session-shell">
       <header class="session-header">
         <button class="icon-button" data-action="back-home" type="button" aria-label="Back to homework">←</button>
-        <div class="session-heading">
-          <div>Step ${stepNumber} of 4</div>
+         <div class="session-heading">
+          <div>${session.phase === "review" ? "A missed word is back" : "Mixed question mission"}</div>
           <strong>${phaseLabel(session.phase)}</strong>
         </div>
         <div class="session-counter">${session.position + 1}/${session.queue.length}</div>
@@ -244,61 +257,57 @@ export class HomeworkApp {
       <div class="session-progress" role="progressbar" aria-label="Step progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}">
         <div style="width:${pct}%"></div>
       </div>
-      ${this.renderSessionCard(session, item)}
+      ${this.renderSessionCard(assignment, question, item)}
     </main>`;
   }
 
   private renderSessionCard(
-    session: HomeworkSession,
+    assignment: HomeworkAssignment,
+    question: HomeworkQuestion,
     item: HomeworkAssignment["items"][number],
   ): string {
-    if (session.phase === "learn") {
-      return `<section class="study-card study-card--learn" data-testid="study-card" tabindex="-1">
-        <div class="study-prompt">Look, listen, and say it aloud</div>
-        ${characterFace(item.hanzi, item.pinyin, item.english)}
-        <button class="listen-action" data-action="listen" data-hanzi="${escapeAttr(item.hanzi)}" type="button">🔊 Listen</button>
-        <button class="primary-action primary-action--large" data-action="advance-session" type="button">I learned it <span>→</span></button>
-      </section>`;
-    }
-    if (session.phase === "practice") {
-      return `<section class="study-card study-card--practice" data-testid="study-card" tabindex="-1">
-        <div class="study-prompt">Write it three times on paper</div>
-        ${characterFace(item.hanzi, item.pinyin, item.english)}
-        <div class="paper-guide" aria-hidden="true">
-          <span>${escapeHtml(item.hanzi)}</span><span>${escapeHtml(item.hanzi)}</span><span>${escapeHtml(item.hanzi)}</span>
+    const choices = questionChoices(assignment, question, item);
+    const correctValue = choiceValue(question.kind, item);
+    const prompt = renderQuestionPrompt(question.kind, item);
+    const buttons = choices.map((choice) => {
+      const value = choiceValue(question.kind, choice);
+      const feedbackClass = this.answerFeedback
+        ? value === correctValue
+          ? " quiz-choice--correct"
+          : value === this.answerFeedback.selectedValue
+            ? " quiz-choice--incorrect"
+            : ""
+        : "";
+      return `<button class="quiz-choice${feedbackClass}" data-action="answer-question"
+                      data-choice-value="${escapeAttr(value)}" type="button"
+                      ${this.answerFeedback ? "disabled" : ""}>
+        ${question.kind === "hanzi-meaning"
+          ? `<span class="quiz-choice-meaning">${escapeHtml(choice.english)}</span>`
+          : `<span class="quiz-choice-hanzi" lang="zh-Hant">${escapeHtml(choice.hanzi)}</span>`}
+      </button>`;
+    }).join("");
+    const feedback = this.answerFeedback
+      ? `<div class="quiz-feedback ${this.answerFeedback.correct ? "quiz-feedback--correct" : "quiz-feedback--try"}"
+              aria-live="polite" tabindex="-1">
+          <strong>${this.answerFeedback.correct ? "Yes!" : "Good try!"}</strong>
+          <span><b lang="zh-Hant">${escapeHtml(item.hanzi)}</b> · ${escapeHtml(item.pinyin)} · ${escapeHtml(item.english)}</span>
+          <button class="feedback-listen" data-action="listen" data-hanzi="${escapeAttr(item.hanzi)}" type="button">🔊 Hear it</button>
         </div>
-        <p class="study-tip">Say the word each time you write it.</p>
-        <button class="primary-action primary-action--large" data-action="advance-session" type="button">Done writing <span>→</span></button>
-      </section>`;
-    }
+        <button class="primary-action primary-action--large quiz-next" data-action="next-question" type="button">
+          Next question <span aria-hidden="true">→</span>
+        </button>`
+      : "";
 
-    const revealed = this.answerRevealed;
-    return `<section class="study-card study-card--recall" data-testid="study-card" tabindex="-1">
-      <div class="study-prompt">${session.phase === "review" ? "Try this one again" : "Write the answer without peeking"}</div>
-      <div class="recall-clue">
-        <div class="recall-meaning">${escapeHtml(item.english)}</div>
-        <div class="recall-pinyin">${escapeHtml(item.pinyin)}</div>
-        <button class="listen-action" data-action="listen" data-hanzi="${escapeAttr(item.hanzi)}" type="button">🔊 Hear it</button>
-      </div>
-      ${revealed
-        ? `<div class="answer-reveal" aria-live="polite" tabindex="-1">
-            <div class="answer-label">Answer</div>
-            <div class="study-hanzi" lang="zh-Hant">${escapeHtml(item.hanzi)}</div>
-            <p>Does your writing match?</p>
-          </div>
-          <div class="grade-actions">
-            <button class="grade-action grade-action--again" data-action="grade" data-correct="false" type="button">Practice again</button>
-            <button class="grade-action grade-action--correct" data-action="grade" data-correct="true" type="button">I got it ✓</button>
-          </div>`
-        : `<div class="recall-writing-space" aria-hidden="true"><span></span><span></span><span></span></div>
-          <button class="primary-action primary-action--large" data-action="reveal-answer" type="button">Show answer</button>`}
+    return `<section class="study-card quiz-card" data-testid="study-card" tabindex="-1">
+      <div class="study-prompt">${questionInstruction(question.kind)}</div>
+      ${prompt}
+      <div class="quiz-choices" aria-label="Answer choices">${buttons}</div>
+      ${feedback}
     </section>`;
   }
 
   private renderSummary(assignment: HomeworkAssignment, session: HomeworkSession): string {
     const needsWork = new Set(session.needsWork);
-    const missionItems = assignment.items.filter((item) => session.missionItemIds.includes(item.id));
-    const mastered = missionItems.length - needsWork.size;
     const assignmentProgress = this.progress.getAssignment(assignment.id);
     const garden = gardenStageForMissions(this.progress.getTotalMissionsCompleted());
     const weekComplete = Boolean(assignmentProgress.completedAt);
@@ -309,14 +318,14 @@ export class HomeworkApp {
         <h1>${escapeHtml(garden.name)}</h1>
         <p>${escapeHtml(garden.message)}</p>
         <div class="summary-stats">
-          <div><strong>${mastered}</strong><span>Looking strong</span></div>
-          <div><strong>${needsWork.size}</strong><span>Keep practicing</span></div>
+          <div><strong>${session.correctAnswers}</strong><span>Quick answers right</span></div>
+          <div><strong>${needsWork.size}</strong><span>Practice next time</span></div>
         </div>
         ${needsWork.size > 0
           ? `<div class="needs-work"><strong>Practice next time:</strong>
               <div>${assignment.items.filter((item) => needsWork.has(item.id)).map((item) => `<span lang="zh-Hant">${escapeHtml(item.hanzi)}</span>`).join("")}</div>
             </div>`
-            : `<div class="all-mastered">✦ You remembered every answer!</div>`}
+            : `<div class="all-mastered">✦ You finished every quick question!</div>`}
         ${weekComplete ? `<div class="week-complete">Weekly homework complete — beautiful work!</div>` : ""}
         <button class="primary-action primary-action--large" data-action="finish-session" type="button">See my garden</button>
         <button class="secondary-action" data-action="restart-session" type="button">Play another mission</button>
@@ -430,18 +439,12 @@ export class HomeworkApp {
       speakZh(button.dataset.hanzi ?? "");
       return;
     }
-    if (action === "advance-session") {
-      this.advanceSession();
+    if (action === "answer-question") {
+      this.answerQuestion(button.dataset.choiceValue ?? "");
       return;
     }
-    if (action === "reveal-answer") {
-      this.answerRevealed = true;
-      this.render();
-      this.root.querySelector<HTMLElement>(".answer-reveal")?.focus();
-      return;
-    }
-    if (action === "grade") {
-      this.gradeRecall(button.dataset.correct === "true");
+    if (action === "next-question") {
+      this.commitAnswer();
       return;
     }
     if (action === "finish-session") {
@@ -505,37 +508,41 @@ export class HomeworkApp {
       ? saved
       : startHomeworkSession(assignment, missionItems.map((item) => item.id));
     this.progress.saveSession(this.session);
-    this.answerRevealed = false;
+    this.answerFeedback = null;
     this.screen = "session";
     this.render();
     this.focusSessionSurface();
+    this.speakCurrentQuestion();
   }
 
-  private advanceSession(): void {
+  private answerQuestion(selectedValue: string): void {
     if (!this.session) return;
+    const assignment = this.repository.find(this.session.assignmentId);
+    const question = currentSessionQuestion(this.session);
+    const item = assignment?.items.find((candidate) => candidate.id === question?.itemId);
+    if (!assignment || !question || !item || this.answerFeedback) return;
+    this.answerFeedback = {
+      selectedValue,
+      correct: selectedValue === choiceValue(question.kind, item),
+    };
+    this.render();
+    this.root.querySelector<HTMLElement>(".quiz-feedback")?.focus({ preventScroll: true });
+    speakZh(item.hanzi);
+  }
+
+  private commitAnswer(): void {
+    if (!this.session || !this.answerFeedback) return;
     const assignment = this.repository.find(this.session.assignmentId);
     const itemId = currentSessionItemId(this.session);
     if (!assignment || !itemId) return;
-    if (this.session.phase === "learn") this.progress.recordLearned(assignment.id, itemId, this.now());
-    if (this.session.phase === "practice") this.progress.recordWriting(assignment.id, itemId, this.now());
-    this.session = advanceHomeworkSession(this.session, assignment);
+    this.progress.recordLearned(assignment.id, itemId, this.now());
+    this.progress.recordRecall(assignment.id, itemId, this.answerFeedback.correct, this.now());
+    this.session = gradeHomeworkAnswer(this.session, this.answerFeedback.correct);
     this.persistSession(assignment);
-    this.answerRevealed = false;
+    this.answerFeedback = null;
     this.render();
     this.focusSessionSurface();
-  }
-
-  private gradeRecall(correct: boolean): void {
-    if (!this.session) return;
-    const assignment = this.repository.find(this.session.assignmentId);
-    const itemId = currentSessionItemId(this.session);
-    if (!assignment || !itemId) return;
-    this.progress.recordRecall(assignment.id, itemId, correct, this.now());
-    this.session = gradeHomeworkRecall(this.session, assignment, correct);
-    this.persistSession(assignment);
-    this.answerRevealed = false;
-    this.render();
-    this.focusSessionSurface();
+    this.speakCurrentQuestion();
   }
 
   private persistSession(assignment: HomeworkAssignment): void {
@@ -594,6 +601,14 @@ export class HomeworkApp {
     this.root.querySelector<HTMLElement>(".study-card, .summary-card")?.focus({ preventScroll: true });
   }
 
+  private speakCurrentQuestion(): void {
+    if (!this.session || this.session.phase === "complete") return;
+    const assignment = this.repository.find(this.session.assignmentId);
+    const question = currentSessionQuestion(this.session);
+    const item = assignment?.items.find((candidate) => candidate.id === question?.itemId);
+    if (question?.kind === "listen-choice" && item) speakZh(item.hanzi);
+  }
+
   private focusAuthorError(): void {
     this.root.querySelector<HTMLElement>(".author-errors")?.focus({ preventScroll: true });
   }
@@ -604,7 +619,7 @@ function sessionMatchesAssignment(session: HomeworkSession, assignment: Homework
   const ids = new Set(assignment.items.map((item) => item.id));
   const referencedIds = [
     ...session.missionItemIds,
-    ...session.queue,
+    ...session.queue.map((question) => question.itemId),
     ...session.missed,
     ...session.needsWork,
     ...Object.keys(session.reviewAttempts),
@@ -619,12 +634,87 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Homework could not be saved on this device.";
 }
 
-function characterFace(hanzi: string, pinyin: string, english: string): string {
-  return `<div class="character-face">
-    <div class="study-hanzi" lang="zh-Hant">${escapeHtml(hanzi)}</div>
-    <div class="study-pinyin">${escapeHtml(pinyin)}</div>
-    <div class="study-english">${escapeHtml(english)}</div>
+function questionInstruction(kind: HomeworkQuestionKind): string {
+  if (kind === "listen-choice") return "Listen. Which character did you hear?";
+  if (kind === "hanzi-meaning") return "What does this character mean?";
+  return "Which character matches this meaning?";
+}
+
+function renderQuestionPrompt(
+  kind: HomeworkQuestionKind,
+  item: HomeworkAssignment["items"][number],
+): string {
+  if (kind === "listen-choice") {
+    return `<button class="quiz-audio-hero" data-action="listen" data-hanzi="${escapeAttr(item.hanzi)}"
+                    type="button" aria-label="Hear the word again">
+      <span aria-hidden="true">🔊</span><strong>Tap to hear</strong><small>You can replay it anytime</small>
+    </button>`;
+  }
+  if (kind === "hanzi-meaning") {
+    return `<div class="quiz-prompt-face">
+      <div class="quiz-prompt-hanzi" lang="zh-Hant">${escapeHtml(item.hanzi)}</div>
+      <div class="quiz-prompt-pinyin">${escapeHtml(item.pinyin)}</div>
+      <button class="quiz-prompt-listen" data-action="listen" data-hanzi="${escapeAttr(item.hanzi)}" type="button">🔊 Hear it</button>
+    </div>`;
+  }
+  return `<div class="quiz-prompt-face quiz-prompt-face--meaning">
+    <div class="quiz-prompt-meaning">${escapeHtml(item.english)}</div>
+    <button class="quiz-prompt-listen" data-action="listen" data-hanzi="${escapeAttr(item.hanzi)}" type="button">🔊 Hear a clue</button>
   </div>`;
+}
+
+function choiceValue(
+  kind: HomeworkQuestionKind,
+  item: HomeworkAssignment["items"][number],
+): string {
+  return kind === "hanzi-meaning" ? item.english : item.hanzi;
+}
+
+function questionChoices(
+  assignment: HomeworkAssignment,
+  question: HomeworkQuestion,
+  answer: HomeworkAssignment["items"][number],
+): HomeworkAssignment["items"] {
+  const answerValue = choiceValue(question.kind, answer);
+  const seen = new Set([answerValue]);
+  const unique = (candidates: HomeworkAssignment["items"]): HomeworkAssignment["items"] =>
+    candidates.filter((candidate) => {
+      const value = choiceValue(question.kind, candidate);
+      if (seen.has(value)) return false;
+      seen.add(value);
+      return true;
+    });
+  const assignmentChoices = unique(assignment.items);
+  const fallbackChoices = unique(WORDS.map((word) => ({
+      id: `word:${word.hanzi}`,
+      hanzi: word.hanzi,
+      pinyin: word.pinyin,
+      english: word.english,
+      skills: ["recall"] as const,
+    })));
+  const rotate = (
+    candidates: HomeworkAssignment["items"],
+    salt: string,
+  ): HomeworkAssignment["items"] => {
+    if (candidates.length === 0) return [];
+    const offset = stableHash(`${question.id}:${salt}`) % candidates.length;
+    return [...candidates.slice(offset), ...candidates.slice(0, offset)];
+  };
+  const distractors = rotate(assignmentChoices, "assignment").slice(0, 2);
+  if (distractors.length < 2) {
+    distractors.push(...rotate(fallbackChoices, "fallback").slice(0, 2 - distractors.length));
+  }
+  const choices = [answer, ...distractors];
+  const answerPosition = stableHash(`${question.id}:position`) % choices.length;
+  const [correct] = choices.splice(0, 1);
+  choices.splice(answerPosition, 0, correct);
+  return choices;
+}
+
+function stableHash(value: string): number {
+  let hash = 0;
+  for (const character of value) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  return hash;
 }
 
 function localIso(date: Date): string {

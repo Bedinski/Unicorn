@@ -22,19 +22,21 @@ The target experience is: **a tiny magical Mandarin adventure that completes rea
 2. **Short missions, persistent progress.** The weekly assignment is a content container. Children experience it as 2–4 minute missions containing 2–3 focus items.
 3. **Every session changes the world.** A completed mission must produce one visible, permanent change to the kitty's study garden. Weekly rewards are secondary.
 4. **Teach, do not merely test.** Incorrect answers trigger progressively clearer scaffolds. They never remove progress, break a streak, or make the pet disappointed.
-5. **Mastery over taps.** Progress represents learn, guided writing, recall, delayed recall, and review—not raw XP alone.
-6. **One coherent world.** The child experience uses one hero kitty, a small cast of ink spirits, one art direction, and one progression system. Homework and Adventure are not separate products.
-7. **A real stopping point.** Every mission ends clearly. Continuing is optional; the app does not use energy, lives, loot boxes, leaderboards, streak loss, ads, or manipulative notifications.
-8. **Local-first and child-safe.** No account or network is required for core use. Any future sync, microphone, or analytics feature must be parent-controlled and privacy-reviewed first.
+5. **Answer first.** Starting a mission must open directly on a prompt the child can hear or see and answer. Never force a Learn → Write sequence before questions begin.
+6. **Mastery over taps.** Progress represents varied recognition, recall, delayed recall, optional guided writing, and review—not raw XP alone.
+7. **One coherent world.** The child experience uses one hero kitty, a small cast of ink spirits, one art direction, and one progression system. Homework and Adventure are not separate products.
+8. **A real stopping point.** Every mission ends clearly. Continuing is optional; the app does not use energy, lives, loot boxes, leaderboards, streak loss, ads, or manipulative notifications.
+9. **Local-first and child-safe.** No account or network is required for core use. Any future sync, microphone, or analytics feature must be parent-controlled and privacy-reviewed first.
 
 ## Core loop
 
 ```text
 Open today's mission
-  → learn/hear
-  → watch/trace/write
-  → recall
-  → scaffolded review
+  → hear or see a question immediately
+  → choose an answer
+  → see and hear instant feedback
+  → rotate to a different question style
+  → briefly repeat missed items
   → choose or reveal a reward
   → garden visibly changes
   → stop, or play another short mission
@@ -52,18 +54,19 @@ The first implementation uses a deterministic garden stage based on completed mi
 
 ## Learning model
 
-Each item should move through these states over multiple encounters:
+Each item should move through these states over multiple encounters, not through a mandatory sequence inside every mission:
 
 1. New
 2. Learned with audio and visual support
-3. Guided writing or tracing
+3. Successful recognition in varied prompt directions
 4. Unassisted recall
 5. Delayed recall
-6. Secure, or needs review
+6. Optional guided writing or tracing
+7. Secure, or needs review
 
 The production goal is to use Taiwan-appropriate stroke data and native Taiwanese Mandarin recordings for built-in content. Browser speech synthesis remains a fallback for custom content.
 
-The current state machine (Learn → Write → Remember → Review) and progress model are deliberately pure TypeScript. During the first short-mission slice, the same proven stages run over a 2–3-item mission rather than the whole assignment. Later iterations should distribute character stages across missions and add delayed-review scheduling without discarding the tested domain boundaries.
+The current pure TypeScript session engine builds one rapid mixed queue using three prompt types: listen and choose a character, see a character and choose its meaning, and see a meaning and choose its character. Every focus item appears in at least two directions; one-item assignments use all three. Incorrect answers reveal the full character, pinyin, and meaning immediately, then return in a short review queue. Writing remains optional and does not gate assignment completion.
 
 ## Child experience
 
@@ -76,9 +79,12 @@ The current state machine (Learn → Write → Remember → Review) and progress
 ### Mission
 
 - One instruction and one decision per screen.
-- Spoken prompt and replay are always available.
+- The first screen is already an answerable question—there are no prerequisite lesson steps.
+- Rotate listening, character-to-meaning, and meaning-to-character prompts within one short mission.
+- Spoken prompt, replay, and immediate corrective feedback are always available.
 - Large touch targets and visible keyboard focus.
-- Progress is expressed as a short path, not an intimidating full assignment total.
+- Progress is expressed as a short question count, not an intimidating full assignment total.
+- Handwriting and paper dictation are optional modes, never a mandatory gate before recall practice.
 
 ### Completion
 
@@ -151,8 +157,8 @@ The string-rendered UI should eventually move to React or Preact components, but
 
 ## Delivery order
 
-1. **Short-mission vertical slice:** 2–3 focus items, mission completion, persistent garden progression, new home/summary art, tests.
-2. **Guided handwriting:** validated stroke animation, tracing, progressive hints, and paper/digital preference.
+1. **Fast mixed-practice vertical slice:** 2–3 focus items, immediate varied questions, corrective review, mission completion, persistent garden progression, new home/summary art, tests.
+2. **Optional guided handwriting:** validated stroke animation, tracing, progressive hints, and paper/digital preference without blocking fast practice.
 3. **Mastery scheduling:** distribute learn/write/recall across sessions and add delayed review.
 4. **Production art/audio system:** art bible, mascot expression/animation set, native recordings, visual meaning cards, sound controls.
 5. **Parent authoring/reporting:** enrichment, structured row editing, clone, backup, and mastery report.
@@ -165,5 +171,6 @@ The string-rendered UI should eventually move to React or Preact components, but
 - The child-facing unit is a short mission of at most three focus items.
 - Inter-session progression outranks weekly progression.
 - Every mission advances a persistent garden stage.
-- The initial vertical slice reuses the tested Learn/Write/Remember/Review state machine over a subset; cross-session mastery scheduling follows after the pacing is validated.
+- Mandatory Learn/Write/Remember phases were removed after product review: they slowed the child down and lost the original answer-first game loop.
+- Missions now mix three immediate question styles and requeue misses for quick review; handwriting is optional.
 - The legacy SVG kitty is not the target art direction. New production art begins with the painted mission garden and a single coherent mascot identity.

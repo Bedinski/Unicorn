@@ -46,65 +46,88 @@ function click(host: HTMLElement, selector: string): void {
   element!.click();
 }
 
+function answer(host: HTMLElement, label: string): void {
+  const button = Array.from(host.querySelectorAll<HTMLButtonElement>('[data-action="answer-question"]'))
+    .find((candidate) => candidate.textContent?.trim() === label);
+  expect(button, `answer ${label}`).toBeDefined();
+  button!.click();
+}
+
+function answerFirstWrong(host: HTMLElement): void {
+  const buttons = Array.from(host.querySelectorAll<HTMLButtonElement>('[data-action="answer-question"]'));
+  const wrong = buttons.find((button) => button.textContent?.trim() !== "我");
+  expect(wrong).toBeDefined();
+  wrong!.click();
+}
+
 describe("HomeworkApp child flow", () => {
-  it("renders the recommended assignment above a clear four-step path", () => {
+  it("advertises varied answer-first questions instead of a lesson path", () => {
     const { host } = setup();
     expect(host.querySelector("[data-testid=assignment-card]")?.textContent).toContain("UI Test Homework");
-    expect(host.querySelector(".homework-path")?.textContent).toContain("Learn");
-    expect(host.querySelector(".homework-path")?.textContent).toContain("Remember");
+    expect(host.querySelector(".practice-mix")?.textContent).toContain("Answer from the very first screen");
+    expect(host.querySelector(".practice-mix")?.textContent).toContain("Listen & pick");
+    expect(host.querySelector(".homework-path")).toBeNull();
   });
 
-  it("completes a one-item Learn → Write → Remember session", () => {
+  it("completes three immediate question styles for one item", () => {
     const { host, progress } = setup();
     click(host, '[data-action="start-session"]');
-    expect(host.querySelector(".session-heading")?.textContent).toContain("Learn");
+    expect(host.querySelector(".session-heading")?.textContent).toContain("Quick practice");
+    expect(host.textContent).toContain("Which character did you hear?");
 
-    click(host, '[data-action="advance-session"]');
-    expect(host.querySelector(".session-heading")?.textContent).toContain("Write");
+    answer(host, "我");
+    expect(host.querySelector(".quiz-feedback")?.textContent).toContain("Yes!");
+    click(host, '[data-action="next-question"]');
+    expect(host.textContent).toContain("What does this character mean?");
 
-    click(host, '[data-action="advance-session"]');
-    expect(host.querySelector(".session-heading")?.textContent).toContain("Remember");
-    expect(host.textContent).not.toContain("Does your writing match?");
-
-    click(host, '[data-action="reveal-answer"]');
-    expect(host.textContent).toContain("Does your writing match?");
-    click(host, '[data-action="grade"][data-correct="true"]');
+    answer(host, "I");
+    click(host, '[data-action="next-question"]');
+    expect(host.textContent).toContain("Which character matches this meaning?");
+    answer(host, "我");
+    click(host, '[data-action="next-question"]');
 
     expect(host.querySelector("[data-testid=session-summary]")?.textContent).toContain("Mission complete");
     expect(host.querySelector("[data-testid=session-summary]")?.textContent).toContain("Seed planted");
     expect(progress.getAssignment(assignment.id).completedAt).not.toBeNull();
     expect(progress.getAssignment(assignment.id).items["我"]).toMatchObject({
       learned: true,
-      writingPractices: 1,
-      recallCorrect: 1,
+      writingPractices: 0,
+      recallCorrect: 3,
     });
     expect(progress.getAssignment(assignment.id).missionsCompleted).toBe(1);
   });
 
-  it("moves keyboard focus to each new lesson surface", () => {
+  it("moves keyboard focus to immediate feedback and each new question", () => {
     const { host } = setup();
     click(host, '[data-action="start-session"]');
     expect(document.activeElement).toBe(host.querySelector(".study-card"));
-    click(host, '[data-action="advance-session"]');
+    answer(host, "我");
+    expect(document.activeElement).toBe(host.querySelector(".quiz-feedback"));
+    click(host, '[data-action="next-question"]');
     expect(document.activeElement).toBe(host.querySelector(".study-card"));
-    click(host, '[data-action="advance-session"]');
-    click(host, '[data-action="reveal-answer"]');
-    expect(document.activeElement).toBe(host.querySelector(".answer-reveal"));
-    click(host, '[data-action="grade"][data-correct="true"]');
+    answer(host, "I");
+    click(host, '[data-action="next-question"]');
+    answer(host, "我");
+    click(host, '[data-action="next-question"]');
     expect(document.activeElement).toBe(host.querySelector(".summary-card"));
   });
 
-  it("routes a missed answer through review before completion", () => {
+  it("shows the right answer immediately and brings a miss back in quick review", () => {
     const { host } = setup();
     click(host, '[data-action="start-session"]');
-    click(host, '[data-action="advance-session"]');
-    click(host, '[data-action="advance-session"]');
-    click(host, '[data-action="reveal-answer"]');
-    click(host, '[data-action="grade"][data-correct="false"]');
-    expect(host.querySelector(".session-heading")?.textContent).toContain("Review");
-    click(host, '[data-action="reveal-answer"]');
-    click(host, '[data-action="grade"][data-correct="true"]');
-    expect(host.querySelector("[data-testid=session-summary]")?.textContent).toContain("0Keep practicing");
+    answerFirstWrong(host);
+    expect(host.querySelector(".quiz-feedback")?.textContent).toContain("Good try!");
+    expect(host.querySelector(".quiz-feedback")?.textContent).toContain("我");
+    click(host, '[data-action="next-question"]');
+    answer(host, "I");
+    click(host, '[data-action="next-question"]');
+    answer(host, "我");
+    click(host, '[data-action="next-question"]');
+
+    expect(host.querySelector(".session-heading")?.textContent).toContain("Quick review");
+    answer(host, "我");
+    click(host, '[data-action="next-question"]');
+    expect(host.querySelector("[data-testid=session-summary]")?.textContent).toContain("Mission complete");
   });
 
   it("opens Free Play through the injected navigation callback", () => {
