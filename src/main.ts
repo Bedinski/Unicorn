@@ -53,9 +53,18 @@ import {
   renderStickerBook,
   stickerSummary,
 } from "@/ui/stickers";
+import { HomeworkApp } from "@/homework/ui";
 
 const app = document.getElementById("app");
 if (!app) throw new Error("#app root not found");
+
+let appMode: "homework" | "game" = "homework";
+const homeworkApp = new HomeworkApp(app, {
+  onFreePlay: () => {
+    appMode = "game";
+    render();
+  },
+});
 
 let state: GameState = loadState();
 let round: Round = nextRound();
@@ -112,6 +121,11 @@ function render(): void {
   disposeBoard?.();
   disposeBoard = null;
 
+  if (appMode === "homework") {
+    homeworkApp.render();
+    return;
+  }
+
   const level = levelForXp(state.xp);
   const levelXp = xpIntoCurrentLevel(state.xp);
   const nextXp = xpNeededForNextLevel(state.xp);
@@ -153,6 +167,9 @@ function render(): void {
     }
 
     <section class="practice-select" aria-label="Practice focus">
+      <button class="homework-return" data-open-homework type="button">
+        📚 Back to Homework
+      </button>
       <div class="practice-row">
         <label class="practice-select-label" for="practice-week">🎯 Practice:</label>
         <select id="practice-week" class="practice-select-input" data-practice-select>
@@ -321,6 +338,13 @@ function wireBoard(): void {
 }
 
 function wireFooter(): void {
+  app!
+    .querySelector<HTMLButtonElement>("[data-open-homework]")
+    ?.addEventListener("click", () => {
+      appMode = "homework";
+      locked = false;
+      render();
+    });
   app!
     .querySelector<HTMLButtonElement>("[data-reset]")
     ?.addEventListener("click", onReset);

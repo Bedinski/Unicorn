@@ -33,7 +33,9 @@ function speak(text: string, lang: string, rate: number): void {
 }
 
 export function speakZh(text: string): void {
-  speak(text, "zh-CN", 0.85);
+  // Curriculum uses Traditional Chinese, so prefer a Taiwanese Mandarin voice.
+  // pickVoice still falls back to any available zh voice when zh-TW is absent.
+  speak(text, "zh-TW", 0.85);
 }
 
 export function speakEn(text: string): void {

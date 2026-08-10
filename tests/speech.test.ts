@@ -45,7 +45,7 @@ describe("speech (mocked API)", () => {
     expect(canSpeak()).toBe(true);
   });
 
-  it("speakZh calls speak with a zh-CN utterance", () => {
+  it("speakZh calls speak with a Traditional-Chinese zh-TW utterance", () => {
     const speak = vi.fn();
     const cancel = vi.fn();
     (globalThis as { speechSynthesis?: unknown }).speechSynthesis = {
@@ -71,7 +71,7 @@ describe("speech (mocked API)", () => {
     expect(speak).toHaveBeenCalledTimes(1);
     const utter = speak.mock.calls[0][0] as FakeUtterance;
     expect(utter.text).toBe("猫");
-    expect(utter.lang).toBe("zh-CN");
+    expect(utter.lang).toBe("zh-TW");
   });
 
   it("speakZh swallows errors from the underlying API", () => {
