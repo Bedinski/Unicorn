@@ -54,7 +54,7 @@ export function renderTeacherCard(
         <div class="teacher-progress-fill" style="width:${Math.round(((index + 1) / total) * 100)}%"></div>
       </div>
     </div>
-    <section class="teacher-card" data-teacher-card>
+    <section class="teacher-card" data-teacher-card tabindex="-1" aria-label="Teacher Mode dictation card">
       <div class="teacher-card-emoji">👨‍🏫</div>
       <div class="teacher-hanzi" data-teacher-hanzi>${hanzi}</div>
       <div class="teacher-pinyin">${pinyin}</div>

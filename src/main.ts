@@ -179,17 +179,21 @@ function render(): void {
       </button>
     </section>
 
-    <section class="kitty-stage" data-kitty-stage>
-      <div class="kitty-main">
-        ${renderKitty(level)}
-      </div>
-      <div class="kitty-babies" data-babies>
-        ${renderBabyKitty(level, 0)}
-        ${renderBabyKitty(level, 1)}
-        ${renderBabyKitty(level, 2)}
-      </div>
-      ${max ? `<div class="max-banner" data-max-banner>🌟 You made your kitty MAGICAL! 🌟</div>` : ""}
-    </section>
+    ${
+      teacherMode
+        ? ""
+        : `<section class="kitty-stage" data-kitty-stage>
+            <div class="kitty-main">
+              ${renderKitty(level)}
+            </div>
+            <div class="kitty-babies" data-babies>
+              ${renderBabyKitty(level, 0)}
+              ${renderBabyKitty(level, 1)}
+              ${renderBabyKitty(level, 2)}
+            </div>
+            ${max ? `<div class="max-banner" data-max-banner>🌟 You made your kitty MAGICAL! 🌟</div>` : ""}
+          </section>`
+    }
 
     ${
       teacherMode
@@ -359,6 +363,9 @@ function onToggleTeacherMode(): void {
   if (next) rebuildTeacherDeck();
   locked = false;
   render();
+  if (next) {
+    app!.querySelector<HTMLElement>("[data-teacher-card]")?.focus();
+  }
 }
 
 function onPracticeWeekChange(event: Event): void {

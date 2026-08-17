@@ -39,6 +39,45 @@ test("homework is the default experience and Free Play remains available", async
   await expect(page.getByLabel("Study set:")).toContainText("Colors");
 });
 
+test("Teacher Mode replaces the large mascot with an immediately usable dictation card", async ({ page }) => {
+  await page.getByRole("button", { name: /Free Play/ }).click();
+  await page.getByLabel("Study set:").selectOption("week-02");
+  await page.getByRole("button", { name: "Teacher Mode (Dictation)" }).click();
+
+  const card = page.getByLabel("Teacher Mode dictation card");
+  const listen = page.getByRole("button", { name: "Listen" });
+  await expect(page.getByRole("button", { name: "Back to Game" })).toBeVisible();
+  await expect(card).toBeVisible();
+  await expect(card).toBeFocused();
+  await expect(page.locator("[data-kitty-stage]")).toHaveCount(0);
+  await expect(page.locator(".teacher-progress-text")).toContainText("Card 1 of");
+  const listenBox = await listen.boundingBox();
+  expect(listenBox).not.toBeNull();
+  expect(listenBox!.y + listenBox!.height).toBeLessThanOrEqual(720);
+
+  await page.getByRole("button", { name: /Next/ }).click();
+  await expect(page.locator(".teacher-progress-text")).toContainText("Card 2 of");
+});
+
+test("Teacher Mode controls remain above the fold on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await page.getByRole("button", { name: /Free Play/ }).click();
+  await page.getByLabel("Study set:").selectOption("week-02");
+  await page.getByRole("button", { name: "Teacher Mode (Dictation)" }).click();
+
+  const listen = page.getByRole("button", { name: "Listen" });
+  await expect(page.getByLabel("Teacher Mode dictation card")).toBeVisible();
+  const listenBox = await listen.boundingBox();
+  expect(listenBox).not.toBeNull();
+  expect(listenBox!.y + listenBox!.height).toBeLessThanOrEqual(844);
+  const widths = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  expect(widths.scrollWidth).toBeLessThanOrEqual(widths.clientWidth);
+});
+
 test("built-in study can be selected by week or category without dates", async ({ page }) => {
   const picker = page.getByRole("combobox", { name: "Choose by week or category" });
   const weekOptions = picker.locator('optgroup[label="By week"] option');
