@@ -5,7 +5,7 @@ async function createAssignment(page: Page): Promise<void> {
   await page.getByLabel("Title").fill("September Characters");
   await page.getByLabel("Starts").fill("2026-09-08");
   await page.getByLabel("Due").fill("2026-09-12");
-  await page.getByLabel("Characters and words").fill("我 | wǒ | I");
+  await page.getByLabel("Characters and words").fill("東 | dōng | east");
   await page.getByRole("button", { name: "Preview & validate" }).click();
   await expect(page.getByTestId("author-preview")).toContainText("September Characters");
   await page.getByRole("button", { name: "Save homework" }).click();
@@ -65,6 +65,49 @@ test("built-in study can be selected by week or category without dates", async (
   await expect(page.getByTestId("assignment-card")).toContainText("High Frequency Words · Colors");
 });
 
+test("pre–First Grade browser data is archived and cannot re-enter active study", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem("magical-kitty-mandarin:homework-assignments:v1", JSON.stringify({
+      version: 1,
+      assignments: [{
+        id: "custom:2026-01-01:legacy-greetings",
+        title: "Legacy Greetings",
+        startDate: "2026-01-01",
+        dueDate: "2026-01-05",
+        source: "custom",
+        items: [{ id: "你好", hanzi: "你好", pinyin: "nǐhǎo", english: "hello", skills: ["learn", "write", "recall"] }],
+      }],
+    }));
+    localStorage.setItem("magical-kitty-mandarin:v1", JSON.stringify({
+      version: 3,
+      state: {
+        xp: 7,
+        recentHanzi: ["你好", "東"],
+        seenHanzi: ["耳朵", "東"],
+        categoryCorrect: { greetings: 12, "hfw-school-places": 2 },
+        selectedScopeId: "2026-02-09",
+      },
+    }));
+  });
+  await page.reload();
+
+  const picker = page.getByRole("combobox", { name: "Choose by week or category" });
+  await expect(picker).not.toContainText("Legacy Greetings");
+  await expect(picker).not.toContainText("你好");
+  const migration = await page.evaluate(() => ({
+    archivedHomework: localStorage.getItem("magical-kitty-mandarin:archive:pre-first-grade:homework-assignments:v1"),
+    archivedState: localStorage.getItem("magical-kitty-mandarin:archive:pre-first-grade:game-state:v1"),
+    activeState: JSON.parse(localStorage.getItem("magical-kitty-mandarin:v1") ?? "null"),
+  }));
+  expect(migration.archivedHomework).toContain("Legacy Greetings");
+  expect(migration.archivedState).toContain("你好");
+  expect(migration.activeState.version).toBe(4);
+  expect(migration.activeState.state.recentHanzi).toEqual(["東"]);
+  expect(migration.activeState.state.seenHanzi).toEqual(["東"]);
+  expect(migration.activeState.state.categoryCorrect).toEqual({ "hfw-school-places": 2 });
+  expect(migration.activeState.state.selectedScopeId).toBeNull();
+});
+
 test("a parent can paste, validate, save, and edit a weekly assignment", async ({ page }) => {
   await createAssignment(page);
   await expect(page.getByTestId("assignment-card")).toContainText("September Characters");
@@ -75,7 +118,7 @@ test("a parent can paste, validate, save, and edit a weekly assignment", async (
   await expect(page.locator(".saved-assignments").getByText("September Characters", { exact: true }))
     .toBeVisible();
   await page.getByRole("button", { name: "Edit" }).click();
-  await expect(page.getByLabel("Characters and words")).toHaveValue("我 | wǒ | I");
+  await expect(page.getByLabel("Characters and words")).toHaveValue("東 | dōng | east");
 });
 
 test("the first mission screen is an audible question with an immediate answer", async ({ page }) => {
@@ -89,9 +132,9 @@ test("the first mission screen is an audible question with an immediate answer",
   await expect(page.getByText("I learned it")).toHaveCount(0);
   await expect(page.getByText("Done writing")).toHaveCount(0);
 
-  await answer(page, "我");
+  await answer(page, "東");
   await expect(page.locator(".quiz-feedback")).toContainText("Yes!");
-  await expect(page.locator(".quiz-feedback")).toContainText("wǒ");
+  await expect(page.locator(".quiz-feedback")).toContainText("dōng");
 });
 
 test("keyboard focus follows feedback and each mixed question", async ({ page }) => {
@@ -99,13 +142,13 @@ test("keyboard focus follows feedback and each mixed question", async ({ page })
   await page.getByRole("button", { name: "Start mission" }).click();
   await expect(page.getByTestId("study-card")).toBeFocused();
 
-  await answer(page, "我");
+  await answer(page, "東");
   await expect(page.locator(".quiz-feedback")).toBeFocused();
   await nextQuestion(page);
   await expect(page.getByTestId("study-card")).toBeFocused();
-  await answer(page, "I");
+  await answer(page, "east");
   await nextQuestion(page);
-  await answer(page, "我");
+  await answer(page, "東");
   await nextQuestion(page);
   await expect(page.getByTestId("session-summary")).toBeFocused();
 });
@@ -116,15 +159,15 @@ test("a weekly list becomes connected three-character mixed missions", async ({ 
   await page.getByLabel("Starts").fill("2026-09-08");
   await page.getByLabel("Due").fill("2026-09-12");
   await page.getByLabel("Characters and words").fill(
-    "我 | wǒ | I\n你 | nǐ | you\n好 | hǎo | good\n大 | dà | big",
+    "東 | dōng | east\n南 | nán | south\n西 | xī | west\n北 | běi | north",
   );
   await page.getByRole("button", { name: "Save homework" }).click();
 
   await expect(page.locator(".mission-focus li")).toHaveCount(3);
-  await expect(page.locator(".mission-focus li")).toHaveText(["我", "你", "好"]);
+  await expect(page.locator(".mission-focus li")).toHaveText(["東", "南", "西"]);
   await page.getByRole("button", { name: "Start mission" }).click();
 
-  for (const label of ["我", "you", "好", "I", "你", "好"]) {
+  for (const label of ["東", "south", "西", "east", "南", "西"]) {
     await answer(page, label);
     await nextQuestion(page);
   }
@@ -132,20 +175,20 @@ test("a weekly list becomes connected three-character mixed missions", async ({ 
   await expect(page.getByTestId("session-summary")).toContainText("Seed planted");
   await expect(page.getByTestId("session-summary")).not.toContainText("Week complete");
   await page.getByRole("button", { name: "Play another mission" }).click();
-  await expect(page.getByTestId("study-card")).toContainText("大");
+  await expect(page.getByTestId("study-card")).toContainText("北");
 });
 
 test("three fast question styles complete a one-character mission", async ({ page }) => {
   await createAssignment(page);
   await page.getByRole("button", { name: "Start mission" }).click();
 
-  await answer(page, "我");
+  await answer(page, "東");
   await nextQuestion(page);
   await expect(page.getByText("What does this character mean?")).toBeVisible();
-  await answer(page, "I");
+  await answer(page, "east");
   await nextQuestion(page);
   await expect(page.getByText("Which character matches this meaning?")).toBeVisible();
-  await answer(page, "我");
+  await answer(page, "東");
   await nextQuestion(page);
 
   await expect(page.getByTestId("session-summary")).toContainText("Mission complete");
@@ -158,15 +201,15 @@ test("three fast question styles complete a one-character mission", async ({ pag
 test("a wrong answer is revealed immediately and repeated in quick review", async ({ page }) => {
   await createAssignment(page);
   await page.getByRole("button", { name: "Start mission" }).click();
-  const wrong = page.getByTestId("study-card").locator('.quiz-choice:not(:has-text("我"))').first();
+  const wrong = page.getByTestId("study-card").locator('.quiz-choice:not(:has-text("東"))').first();
   await wrong.click();
   await expect(page.locator(".quiz-feedback")).toContainText("Good try!");
-  await expect(page.locator(".quiz-feedback")).toContainText("我 · wǒ · I");
+  await expect(page.locator(".quiz-feedback")).toContainText("東 · dōng · east");
   await nextQuestion(page);
 
-  await answer(page, "I");
+  await answer(page, "east");
   await nextQuestion(page);
-  await answer(page, "我");
+  await answer(page, "東");
   await nextQuestion(page);
   await expect(page.getByText("Quick review", { exact: true })).toBeVisible();
   await expect(page.getByText("A missed word is back")).toBeVisible();

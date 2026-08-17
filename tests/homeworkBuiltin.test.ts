@@ -1,5 +1,5 @@
-import { STUDY_CATEGORIES } from "@/data/firstGrade";
-import { BUILTIN_ASSIGNMENTS } from "@/homework/builtin";
+import { FIRST_GRADE_WORDS, STUDY_CATEGORIES } from "@/data/firstGrade";
+import { BUILTIN_ASSIGNMENTS, FIRST_GRADE_BUILTIN_PREFIX } from "@/homework/builtin";
 import { validateAssignment } from "@/homework/model";
 
 describe("built-in First Grade study sets", () => {
@@ -10,9 +10,12 @@ describe("built-in First Grade study sets", () => {
   });
 
   it("validates every built-in assignment", () => {
+    const firstGradeHanzi = new Set(FIRST_GRADE_WORDS.map((word) => word.hanzi));
     for (const assignment of BUILTIN_ASSIGNMENTS) {
+      expect(assignment.id.startsWith(FIRST_GRADE_BUILTIN_PREFIX)).toBe(true);
       expect(validateAssignment(assignment), assignment.id).toEqual([]);
       expect(assignment.items.every((item) => item.skills.includes("write"))).toBe(true);
+      expect(assignment.items.every((item) => firstGradeHanzi.has(item.hanzi))).toBe(true);
     }
   });
 

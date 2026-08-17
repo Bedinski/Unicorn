@@ -1,4 +1,5 @@
 import type { HomeworkAssignment } from "@/homework/model";
+import { BUILTIN_ASSIGNMENTS } from "@/homework/builtin";
 import { HomeworkProgressStore } from "@/homework/progress";
 import { HomeworkRepository, recommendedAssignment } from "@/homework/repository";
 import { startHomeworkSession } from "@/homework/session";
@@ -11,7 +12,7 @@ const custom: HomeworkAssignment = {
   dueDate: "2026-09-05",
   source: "custom",
   items: [
-    { id: "我", hanzi: "我", pinyin: "wǒ", english: "I", skills: ["learn", "write", "recall"] },
+    { id: "東", hanzi: "東", pinyin: "dōng", english: "east", skills: ["learn", "write", "recall"] },
   ],
 };
 
@@ -33,16 +34,30 @@ describe("HomeworkRepository", () => {
   });
 
   it("ignores corrupted custom storage", () => {
-    storage.setItem("magical-kitty-mandarin:homework-assignments:v1", "not json");
+    storage.setItem("magical-kitty-mandarin:first-grade:homework-assignments:v2", "not json");
     expect(new HomeworkRepository(storage).list().length).toBe(35);
   });
 
   it("keeps valid custom weeks when another stored entry is malformed", () => {
-    storage.setItem("magical-kitty-mandarin:homework-assignments:v1", JSON.stringify({
+    storage.setItem("magical-kitty-mandarin:first-grade:homework-assignments:v2", JSON.stringify({
       version: 1,
       assignments: [{ id: "custom:broken", source: "custom" }, custom],
     }));
     expect(new HomeworkRepository(storage).find(custom.id)?.title).toBe(custom.title);
+  });
+
+  it("archives old custom homework instead of mixing it into First Grade", () => {
+    const legacyRaw = JSON.stringify({ version: 1, assignments: [custom] });
+    storage.setItem("magical-kitty-mandarin:homework-assignments:v1", legacyRaw);
+    const repository = new HomeworkRepository(storage);
+
+    expect(repository.find(custom.id)).toBeNull();
+    expect(storage.getItem("magical-kitty-mandarin:homework-assignments:v1")).toBeNull();
+    expect(storage.getItem("magical-kitty-mandarin:archive:pre-first-grade:homework-assignments:v1"))
+      .toBe(legacyRaw);
+
+    repository.saveCustom(custom);
+    expect(repository.find(custom.id)?.title).toBe(custom.title);
   });
 
   it("reports storage failures instead of pretending a save succeeded", () => {
@@ -75,11 +90,11 @@ describe("HomeworkProgressStore", () => {
 
   it("tracks each learning skill independently and persists a session", () => {
     const store = new HomeworkProgressStore(storage);
-    store.recordLearned(custom.id, "我", new Date("2026-09-01T10:00:00Z"));
-    store.recordWriting(custom.id, "我", new Date("2026-09-01T10:01:00Z"));
-    store.recordRecall(custom.id, "我", false, new Date("2026-09-01T10:02:00Z"));
-    store.recordRecall(custom.id, "我", true, new Date("2026-09-01T10:03:00Z"));
-    const item = store.getAssignment(custom.id).items["我"];
+    store.recordLearned(custom.id, "東", new Date("2026-09-01T10:00:00Z"));
+    store.recordWriting(custom.id, "東", new Date("2026-09-01T10:01:00Z"));
+    store.recordRecall(custom.id, "東", false, new Date("2026-09-01T10:02:00Z"));
+    store.recordRecall(custom.id, "東", true, new Date("2026-09-01T10:03:00Z"));
+    const item = store.getAssignment(custom.id).items["東"];
     expect(item).toMatchObject({ learned: true, writingPractices: 1, recallCorrect: 1, recallIncorrect: 1 });
 
     const session = startHomeworkSession(custom);
@@ -100,20 +115,20 @@ describe("HomeworkProgressStore", () => {
       ...custom,
       items: [
         ...custom.items,
-        { id: "你", hanzi: "你", pinyin: "nǐ", english: "you", skills: ["learn", "write", "recall"] },
+        { id: "南", hanzi: "南", pinyin: "nán", english: "south", skills: ["learn", "write", "recall"] },
       ],
     };
     const store = new HomeworkProgressStore(storage);
-    store.recordLearned(twoItems.id, "我");
-    store.recordWriting(twoItems.id, "我");
-    store.recordRecall(twoItems.id, "我", true);
+    store.recordLearned(twoItems.id, "東");
+    store.recordWriting(twoItems.id, "東");
+    store.recordRecall(twoItems.id, "東", true);
     const afterFirst = store.completeMission(twoItems, new Date("2026-09-01T12:00:00Z"));
     expect(afterFirst.missionsCompleted).toBe(1);
     expect(afterFirst.completedAt).toBeNull();
 
-    store.recordLearned(twoItems.id, "你");
-    store.recordWriting(twoItems.id, "你");
-    store.recordRecall(twoItems.id, "你", true);
+    store.recordLearned(twoItems.id, "南");
+    store.recordWriting(twoItems.id, "南");
+    store.recordRecall(twoItems.id, "南", true);
     const afterSecond = store.completeMission(twoItems, new Date("2026-09-02T12:00:00Z"));
     expect(afterSecond.missionsCompleted).toBe(2);
     expect(afterSecond.completedAt).toBe("2026-09-02T12:00:00.000Z");
@@ -122,11 +137,11 @@ describe("HomeworkProgressStore", () => {
 
   it("sanitizes malformed saved progress and discards invalid sessions", () => {
     storage.setItem("magical-kitty-mandarin:homework-progress:v1", JSON.stringify({
-      version: 1,
+      version: 2,
       assignments: {
         [custom.id]: {
           items: {
-            "我": { learned: "yes", writingPractices: -4, recallCorrect: 2.5, recallIncorrect: 3 },
+            "東": { learned: "yes", writingPractices: -4, recallCorrect: 2.5, recallIncorrect: 3 },
           },
           completedAt: 123,
         },
@@ -136,7 +151,7 @@ describe("HomeworkProgressStore", () => {
         version: 1,
         assignmentId: custom.id,
         phase: "learn",
-        queue: ["我"],
+        queue: ["東"],
         position: 8,
         missed: [],
         needsWork: [],
@@ -144,7 +159,7 @@ describe("HomeworkProgressStore", () => {
       },
     }));
     const store = new HomeworkProgressStore(storage);
-    expect(store.getAssignment(custom.id).items["我"]).toEqual({
+    expect(store.getAssignment(custom.id).items["東"]).toEqual({
       learned: false,
       writingPractices: 0,
       recallCorrect: 0,
@@ -153,5 +168,27 @@ describe("HomeworkProgressStore", () => {
     });
     expect(store.getAssignment(custom.id).completedAt).toBeNull();
     expect(store.loadSession()).toBeNull();
+  });
+
+  it("archives legacy progress and carries forward only First Grade built-ins", () => {
+    const firstGrade = BUILTIN_ASSIGNMENTS[0];
+    const legacyRaw = JSON.stringify({
+      version: 1,
+      assignments: {
+        [custom.id]: { items: {}, completedAt: null, missionsCompleted: 8 },
+        [firstGrade.id]: { items: {}, completedAt: null, missionsCompleted: 3 },
+      },
+      session: null,
+    });
+    storage.setItem("magical-kitty-mandarin:homework-progress:v1", legacyRaw);
+
+    const store = new HomeworkProgressStore(storage);
+    expect(store.getTotalMissionsCompleted()).toBe(3);
+    expect(store.getAssignment(custom.id).missionsCompleted).toBe(0);
+    expect(storage.getItem("magical-kitty-mandarin:archive:pre-first-grade:homework-progress:v1"))
+      .toBe(legacyRaw);
+    const current = JSON.parse(storage.getItem("magical-kitty-mandarin:homework-progress:v1")!);
+    expect(current.version).toBe(2);
+    expect(Object.keys(current.assignments)).toEqual([firstGrade.id]);
   });
 });

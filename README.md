@@ -18,9 +18,9 @@ Free Play uses the same curriculum choices and also offers **All First Grade**. 
 Open **Manage** and enter a title, dates, and one item per line:
 
 ```text
-我 | wǒ | I
-你 | nǐ | you
-好 | hǎo | good
+東 | dōng | east
+南 | nán | south
+西 | xī | west
 ```
 
 Tabs and commas also work. Custom lists are validated, previewed, and stored locally in that browser. Built-in content is defined in `src/data/firstGrade.ts` and adapted to the same `HomeworkAssignment` model in `src/homework/builtin.ts`.

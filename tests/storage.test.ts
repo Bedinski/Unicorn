@@ -45,6 +45,32 @@ describe("storage", () => {
     expect(loadState(storage)).toEqual(initialState());
   });
 
+  it("archives and removes legacy vocabulary, categories, and scopes during migration", () => {
+    const legacyRaw = JSON.stringify({
+      version: 3,
+      state: {
+        ...initialState(),
+        xp: 12,
+        recentHanzi: ["你好", "東"],
+        seenHanzi: ["耳朵", "東"],
+        categoryCorrect: { greetings: 99, "hfw-weather": 2 },
+        selectedScopeId: "2026-02-09",
+      },
+    });
+    storage.setItem("magical-kitty-mandarin:v1", legacyRaw);
+
+    const migrated = loadState(storage);
+
+    expect(migrated.xp).toBe(12);
+    expect(migrated.recentHanzi).toEqual(["東"]);
+    expect(migrated.seenHanzi).toEqual(["東"]);
+    expect(migrated.categoryCorrect).toEqual({ "hfw-weather": 2 });
+    expect(migrated.selectedScopeId).toBeNull();
+    expect(storage.getItem("magical-kitty-mandarin:archive:pre-first-grade:game-state:v1"))
+      .toBe(legacyRaw);
+    expect(JSON.parse(storage.getItem("magical-kitty-mandarin:v1")!).version).toBe(4);
+  });
+
   it("recovers to initial state when stored state shape is invalid", () => {
     storage.setItem(
       "magical-kitty-mandarin:v1",

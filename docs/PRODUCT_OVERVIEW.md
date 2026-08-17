@@ -177,5 +177,6 @@ The string-rendered UI should eventually move to React or Preact components, but
 - The First Grade source pack is modeled without school-calendar dates. The old dated test sequence is not a curriculum sequence: HFW study guides retain their topic order while Meizhou guides are placed in ascending available chapter order (1, 2, 3, 4, 8, 10), alternating across 12 study weeks.
 - Each week contains the exact recognition subset and standalone writing characters shown by its study guide. Weekly-only writing characters must not leak into the 64-item Complete Dictation List category.
 - Mandarin Songs, the Meizhou textbook directory, and Kinder home-review resources are intentionally outside the current curriculum scope.
+- The pre–First Grade built-in curriculum is retained only in the immutable `archive/pre-first-grade-2026` Git snapshot documented in `archive/pre-first-grade/README.md`; it is not part of any runtime pool.
 - Homework and Free Play must share one canonical vocabulary catalog so a week/category selection behaves consistently everywhere.
 - Authentic source vocabulary can have duplicate English glosses. Choice identity therefore uses Hanzi, while English remains display content.

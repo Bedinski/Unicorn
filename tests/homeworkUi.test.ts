@@ -144,13 +144,13 @@ describe("HomeworkApp authoring flow", () => {
     host.querySelector<HTMLInputElement>("[data-author-title]")!.value = "New Characters";
     host.querySelector<HTMLInputElement>("[data-author-start]")!.value = "2026-09-08";
     host.querySelector<HTMLInputElement>("[data-author-due]")!.value = "2026-09-12";
-    host.querySelector<HTMLTextAreaElement>("[data-author-rows]")!.value = "你 | nǐ | you\n好 | hǎo | good";
+    host.querySelector<HTMLTextAreaElement>("[data-author-rows]")!.value = "南 | nán | south\n西 | xī | west";
 
     click(host, '[data-action="preview-assignment"]');
     expect(host.querySelector("[data-testid=author-preview]")?.textContent).toContain("New Characters");
     expect(
       Array.from(host.querySelectorAll("[data-testid=author-preview] li > span")).map((node) => node.textContent),
-    ).toEqual(["你", "好"]);
+    ).toEqual(["南", "西"]);
 
     click(host, '[data-action="save-assignment"]');
     const saved = repository.find("custom:2026-09-08:new-characters");
@@ -162,7 +162,7 @@ describe("HomeworkApp authoring flow", () => {
     const { host, repository } = setup();
     click(host, '[data-action="author"]');
     host.querySelector<HTMLInputElement>("[data-author-title]")!.value = "Broken";
-    host.querySelector<HTMLTextAreaElement>("[data-author-rows]")!.value = "我 only";
+    host.querySelector<HTMLTextAreaElement>("[data-author-rows]")!.value = "東 only";
     click(host, '[data-action="save-assignment"]');
     expect(host.querySelector("[role=alert]")?.textContent).toContain("needs Hanzi, pinyin, and English");
     expect(repository.list().some((item) => item.title === "Broken")).toBe(false);
@@ -172,7 +172,7 @@ describe("HomeworkApp authoring flow", () => {
     const { host, storage } = setup();
     click(host, '[data-action="author"]');
     host.querySelector<HTMLInputElement>("[data-author-title]")!.value = "Cannot save";
-    host.querySelector<HTMLTextAreaElement>("[data-author-rows]")!.value = "你 | nǐ | you";
+    host.querySelector<HTMLTextAreaElement>("[data-author-rows]")!.value = "南 | nán | south";
     storage.setItem = () => { throw new Error("blocked"); };
     click(host, '[data-action="save-assignment"]');
     const alert = host.querySelector<HTMLElement>("[role=alert]");
@@ -185,7 +185,7 @@ describe("HomeworkApp authoring flow", () => {
     const { host } = setup();
     click(host, '[data-action="author"]');
     host.querySelector<HTMLInputElement>("[data-author-title]")!.value = '<img src=x onerror="alert(1)">';
-    host.querySelector<HTMLTextAreaElement>("[data-author-rows]")!.value = "我 | wǒ | <script>bad</script>";
+    host.querySelector<HTMLTextAreaElement>("[data-author-rows]")!.value = "東 | dōng | <script>bad</script>";
     click(host, '[data-action="preview-assignment"]');
     expect(host.querySelector(".author-preview img")).toBeNull();
     expect(host.querySelector(".author-preview script")).toBeNull();

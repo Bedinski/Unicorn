@@ -1,7 +1,9 @@
 import { BUILTIN_ASSIGNMENTS } from "./builtin";
 import { validateAssignment, type HomeworkAssignment } from "./model";
 
-const CUSTOM_ASSIGNMENTS_KEY = "magical-kitty-mandarin:homework-assignments:v1";
+const LEGACY_ASSIGNMENTS_KEY = "magical-kitty-mandarin:homework-assignments:v1";
+const LEGACY_ASSIGNMENTS_ARCHIVE_KEY = "magical-kitty-mandarin:archive:pre-first-grade:homework-assignments:v1";
+const CUSTOM_ASSIGNMENTS_KEY = "magical-kitty-mandarin:first-grade:homework-assignments:v2";
 
 interface StoredAssignments {
   version: 1;
@@ -53,6 +55,7 @@ export class HomeworkRepository {
   private loadCustom(): HomeworkAssignment[] {
     if (!this.storage) return [];
     try {
+      this.archiveLegacyAssignments();
       const raw = this.storage.getItem(CUSTOM_ASSIGNMENTS_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw) as Partial<StoredAssignments>;
@@ -66,11 +69,22 @@ export class HomeworkRepository {
   private write(payload: StoredAssignments): boolean {
     if (!this.storage) return false;
     try {
+      this.archiveLegacyAssignments();
       this.storage.setItem(CUSTOM_ASSIGNMENTS_KEY, JSON.stringify(payload));
       return true;
     } catch {
       return false;
     }
+  }
+
+  private archiveLegacyAssignments(): void {
+    if (!this.storage) return;
+    const legacy = this.storage.getItem(LEGACY_ASSIGNMENTS_KEY);
+    if (legacy === null) return;
+    if (this.storage.getItem(LEGACY_ASSIGNMENTS_ARCHIVE_KEY) === null) {
+      this.storage.setItem(LEGACY_ASSIGNMENTS_ARCHIVE_KEY, legacy);
+    }
+    this.storage.removeItem(LEGACY_ASSIGNMENTS_KEY);
   }
 }
 

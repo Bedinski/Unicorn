@@ -1,11 +1,36 @@
 import { initialState, type GameState } from "./state";
+import { FIRST_GRADE_WORDS, FIRST_GRADE_WEEKS, STUDY_CATEGORIES } from "@/data/firstGrade";
 
 const STORAGE_KEY = "magical-kitty-mandarin:v1";
-const SCHEMA_VERSION = 3;
+const LEGACY_ARCHIVE_KEY = "magical-kitty-mandarin:archive:pre-first-grade:game-state:v1";
+const SCHEMA_VERSION = 4;
+
+const FIRST_GRADE_HANZI: ReadonlySet<string> = new Set(FIRST_GRADE_WORDS.map((word) => word.hanzi));
+const FIRST_GRADE_CATEGORY_IDS: ReadonlySet<string> = new Set(STUDY_CATEGORIES.map((category) => category.id));
+const FIRST_GRADE_SCOPE_IDS: ReadonlySet<string> = new Set([
+  ...FIRST_GRADE_WEEKS.map((week) => week.id),
+  ...STUDY_CATEGORIES.map((category) => `category:${category.id}`),
+]);
 
 interface StoredShape {
   version: number;
   state: Partial<GameState>;
+}
+
+function currentHanzi(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((hanzi): hanzi is string => typeof hanzi === "string" && FIRST_GRADE_HANZI.has(hanzi))
+    : [];
+}
+
+function currentCategoryCorrect(value: unknown): GameState["categoryCorrect"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter(([id, count]) =>
+    FIRST_GRADE_CATEGORY_IDS.has(id) &&
+    typeof count === "number" &&
+    Number.isFinite(count) &&
+    count >= 0,
+  ));
 }
 
 function mergeWithDefaults(partial: Partial<GameState> & { selectedWeekStart?: unknown }): GameState {
@@ -20,17 +45,13 @@ function mergeWithDefaults(partial: Partial<GameState> & { selectedWeekStart?: u
       typeof partial.incorrectCount === "number"
         ? partial.incorrectCount
         : base.incorrectCount,
-    recentHanzi: Array.isArray(partial.recentHanzi)
-      ? partial.recentHanzi.filter((h): h is string => typeof h === "string")
-      : base.recentHanzi,
+    recentHanzi: currentHanzi(partial.recentHanzi),
     streak: typeof partial.streak === "number" ? partial.streak : base.streak,
     bestStreak:
       typeof partial.bestStreak === "number"
         ? partial.bestStreak
         : base.bestStreak,
-    seenHanzi: Array.isArray(partial.seenHanzi)
-      ? partial.seenHanzi.filter((h): h is string => typeof h === "string")
-      : base.seenHanzi,
+    seenHanzi: currentHanzi(partial.seenHanzi),
     stars:
       partial.stars &&
       typeof partial.stars === "object" &&
@@ -38,12 +59,9 @@ function mergeWithDefaults(partial: Partial<GameState> & { selectedWeekStart?: u
       typeof partial.stars.count === "number"
         ? { date: partial.stars.date, count: partial.stars.count }
         : base.stars,
-    categoryCorrect:
-      partial.categoryCorrect && typeof partial.categoryCorrect === "object"
-        ? { ...partial.categoryCorrect }
-        : base.categoryCorrect,
+    categoryCorrect: currentCategoryCorrect(partial.categoryCorrect),
     selectedScopeId:
-      typeof partial.selectedScopeId === "string"
+      typeof partial.selectedScopeId === "string" && FIRST_GRADE_SCOPE_IDS.has(partial.selectedScopeId)
         ? partial.selectedScopeId
         : base.selectedScopeId,
     teacherMode:
@@ -69,9 +87,25 @@ export function loadState(
     if (!parsed.state || typeof parsed.state !== "object") {
       return initialState();
     }
-    return mergeWithDefaults(parsed.state);
+    const state = mergeWithDefaults(parsed.state);
+    if (parsed.version < SCHEMA_VERSION) {
+      if (archiveLegacyValue(storage, raw)) saveState(state, storage);
+    }
+    return state;
   } catch {
     return initialState();
+  }
+}
+
+function archiveLegacyValue(storage: Storage, raw: string): boolean {
+  try {
+    if (storage.getItem(LEGACY_ARCHIVE_KEY) === null) {
+      storage.setItem(LEGACY_ARCHIVE_KEY, raw);
+    }
+    return storage.getItem(LEGACY_ARCHIVE_KEY) !== null;
+  } catch {
+    // Keep the active legacy payload untouched so archiving can retry later.
+    return false;
   }
 }
 

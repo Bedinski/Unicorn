@@ -1,7 +1,9 @@
 import type { HomeworkAssignment } from "./model";
 import type { HomeworkSession } from "./session";
+import { FIRST_GRADE_BUILTIN_PREFIX } from "./builtin";
 
 const PROGRESS_KEY = "magical-kitty-mandarin:homework-progress:v1";
+const LEGACY_PROGRESS_ARCHIVE_KEY = "magical-kitty-mandarin:archive:pre-first-grade:homework-progress:v1";
 
 export interface ItemProgress {
   learned: boolean;
@@ -18,13 +20,13 @@ export interface AssignmentProgress {
 }
 
 interface ProgressPayload {
-  version: 1;
+  version: 2;
   assignments: Record<string, AssignmentProgress>;
   session: HomeworkSession | null;
 }
 
 function initialPayload(): ProgressPayload {
-  return { version: 1, assignments: {}, session: null };
+  return { version: 2, assignments: {}, session: null };
 }
 
 const SESSION_PHASES = new Set(["quiz", "review", "complete"]);
@@ -230,16 +232,34 @@ export class HomeworkProgressStore {
     try {
       const raw = this.storage.getItem(PROGRESS_KEY);
       if (!raw) return initialPayload();
-      const parsed = JSON.parse(raw) as Partial<ProgressPayload>;
-      if (parsed.version !== 1 || !parsed.assignments || typeof parsed.assignments !== "object") {
+      const parsed = JSON.parse(raw) as {
+        version?: unknown;
+        assignments?: unknown;
+        session?: unknown;
+      };
+      if (
+        (parsed.version !== 1 && parsed.version !== 2) ||
+        !parsed.assignments ||
+        typeof parsed.assignments !== "object"
+      ) {
         return initialPayload();
       }
       const assignments: Record<string, AssignmentProgress> = {};
       for (const [id, rawAssignment] of Object.entries(parsed.assignments)) {
+        if (parsed.version === 1 && !id.startsWith(FIRST_GRADE_BUILTIN_PREFIX)) continue;
         const assignment = normalizeAssignmentProgress(rawAssignment);
         if (assignment) assignments[id] = assignment;
       }
-      return { version: 1, assignments, session: normalizeSession(parsed.session) };
+      const normalizedSession = normalizeSession(parsed.session);
+      const session = parsed.version === 1 &&
+        !normalizedSession?.assignmentId.startsWith(FIRST_GRADE_BUILTIN_PREFIX)
+        ? null
+        : normalizedSession;
+      const payload: ProgressPayload = { version: 2, assignments, session };
+      if (parsed.version === 1) {
+        if (this.archiveLegacyProgress(raw)) this.write(payload);
+      }
+      return payload;
     } catch {
       return initialPayload();
     }
@@ -251,6 +271,19 @@ export class HomeworkProgressStore {
       this.storage.setItem(PROGRESS_KEY, JSON.stringify(payload));
     } catch {
       // Homework remains usable for the current screen even without persistence.
+    }
+  }
+
+  private archiveLegacyProgress(raw: string): boolean {
+    if (!this.storage) return false;
+    try {
+      if (this.storage.getItem(LEGACY_PROGRESS_ARCHIVE_KEY) === null) {
+        this.storage.setItem(LEGACY_PROGRESS_ARCHIVE_KEY, raw);
+      }
+      return this.storage.getItem(LEGACY_PROGRESS_ARCHIVE_KEY) !== null;
+    } catch {
+      // Keep the active legacy payload untouched so archiving can retry later.
+      return false;
     }
   }
 }

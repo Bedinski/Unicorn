@@ -82,7 +82,7 @@ render();
 
 function rebuildTeacherDeck(): void {
   // Use the recognition pool so teacher mode includes every word in scope
-  // (compounds like 耳朵 / 你好 too), not just single characters. The draw
+  // (compounds like 圖書館 / 牛油 too), not just single characters. The draw
   // pool's single-char filter exists for in-app Draw rounds; on paper the
   // child can write any word, so it doesn't apply here.
   const { recognition } = currentPools();

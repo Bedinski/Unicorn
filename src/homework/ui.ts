@@ -373,7 +373,7 @@ export class HomeworkApp {
             </div>
             <label>Characters and words
               <span class="field-help">One per line: Hanzi | pinyin | English</span>
-              <textarea data-author-rows rows="8" placeholder="我 | wǒ | I&#10;你 | nǐ | you">${escapeHtml(this.authorValues.rows)}</textarea>
+              <textarea data-author-rows rows="8" placeholder="東 | dōng | east&#10;南 | nán | south">${escapeHtml(this.authorValues.rows)}</textarea>
             </label>
             <div class="author-actions">
               <button class="secondary-action" data-action="preview-assignment" type="button">Preview & validate</button>

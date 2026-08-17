@@ -63,14 +63,14 @@ describe("homework assignment validation", () => {
 
 describe("parseHomeworkRows", () => {
   it("accepts pipe, tab, and comma-separated rows", () => {
-    const parsed = parseHomeworkRows("我 | wǒ | I\n你\tnǐ\tyou\n好,hǎo,good");
+    const parsed = parseHomeworkRows("東 | dōng | east\n南\tnán\tsouth\n西,xī,west");
     expect(parsed.issues).toEqual([]);
-    expect(parsed.items.map((item) => item.hanzi)).toEqual(["我", "你", "好"]);
+    expect(parsed.items.map((item) => item.hanzi)).toEqual(["東", "南", "西"]);
     expect(parsed.items[0].skills).toEqual(["learn", "write", "recall"]);
   });
 
   it("reports the source line for incomplete rows", () => {
-    const parsed = parseHomeworkRows("我 | wǒ | I\nmissing fields");
+    const parsed = parseHomeworkRows("東 | dōng | east\nmissing fields");
     expect(parsed.items).toHaveLength(1);
     expect(parsed.issues[0].message).toContain("Line 2");
   });
