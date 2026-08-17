@@ -1,6 +1,7 @@
 import type { WordCategory } from "@/data/words";
 import type { CategoryCorrect } from "@/game/state";
 import { STICKER_THRESHOLD } from "@/game/state";
+import { STUDY_CATEGORIES } from "@/data/firstGrade";
 
 export interface StickerInfo {
   category: WordCategory;
@@ -8,25 +9,11 @@ export interface StickerInfo {
   emoji: string;
 }
 
-export const STICKERS: readonly StickerInfo[] = [
-  { category: "pronouns", label: "Word Friend", emoji: "👋" },
-  { category: "family", label: "Family Helper", emoji: "👨‍👩‍👧" },
-  { category: "classroom", label: "Class Captain", emoji: "🎒" },
-  { category: "school", label: "School Star", emoji: "🏫" },
-  { category: "animals", label: "Animal Friend", emoji: "🐾" },
-  { category: "senses", label: "Five Senses", emoji: "👃" },
-  { category: "numbers", label: "Number Wizard", emoji: "🔢" },
-  { category: "colors", label: "Rainbow Master", emoji: "🌈" },
-  { category: "pointing", label: "Pointer", emoji: "👉" },
-  { category: "body_parts", label: "Body Buddy", emoji: "🖐️" },
-  { category: "places", label: "Explorer", emoji: "🏞️" },
-  { category: "dates", label: "Calendar Kid", emoji: "📅" },
-  { category: "weather", label: "Weather Watcher", emoji: "☀️" },
-  { category: "opposites", label: "Opposite Champ", emoji: "↔️" },
-  { category: "verbs", label: "Action Hero", emoji: "🏃" },
-  { category: "feelings", label: "Feeling Finder", emoji: "😊" },
-  { category: "greetings", label: "Greeter", emoji: "🙌" },
-];
+export const STICKERS: readonly StickerInfo[] = STUDY_CATEGORIES.map((category) => ({
+  category: category.id,
+  label: `${category.label} Star`,
+  emoji: category.emoji,
+}));
 
 export function infoFor(category: WordCategory): StickerInfo {
   const match = STICKERS.find((s) => s.category === category);

@@ -167,34 +167,34 @@ describe("daily stars", () => {
 describe("category stickers", () => {
   it("awards a sticker when a category hits the threshold of correct answers", () => {
     let s = initialState();
-    const animals = ["貓", "狗", "魚", "羊", "馬"];
+    const animals = ["大象", "蛇", "鼠", "虎", "雞"];
     let newSticker: string | null = null;
     for (const h of animals) {
       const r = recordAnswer(s, h, true);
       s = r.state;
       if (r.newSticker) newSticker = r.newSticker;
     }
-    expect(s.categoryCorrect.animals).toBe(STICKER_THRESHOLD);
-    expect(newSticker).toBe("animals");
-    expect(earnedStickers(s)).toContain("animals");
+    expect(s.categoryCorrect["hfw-animals"]).toBe(STICKER_THRESHOLD);
+    expect(newSticker).toBe("hfw-animals");
+    expect(earnedStickers(s)).toContain("hfw-animals");
   });
 
   it("does not re-award a sticker after further correct answers", () => {
     let s = initialState();
-    const animals = ["貓", "狗", "魚", "羊", "馬", "牛"];
+    const animals = ["大象", "蛇", "鼠", "虎", "雞", "鳥"];
     const stickerEvents: string[] = [];
     for (const h of animals) {
       const r = recordAnswer(s, h, true);
       s = r.state;
       if (r.newSticker) stickerEvents.push(r.newSticker);
     }
-    expect(stickerEvents).toEqual(["animals"]);
+    expect(stickerEvents).toEqual(["hfw-animals"]);
   });
 
   it("wrong answers do not progress a category", () => {
     const s0 = initialState();
-    const r = recordAnswer(s0, "貓", false);
-    expect(r.state.categoryCorrect.animals).toBeUndefined();
+    const r = recordAnswer(s0, "大象", false);
+    expect(r.state.categoryCorrect["hfw-animals"]).toBeUndefined();
   });
 });
 
@@ -204,7 +204,7 @@ describe("resetKitty", () => {
     for (const h of ["貓", "狗", "魚", "羊", "馬"]) {
       s = recordAnswer(s, h, true).state;
     }
-    s = { ...s, selectedWeekStart: "2026-04-20" };
+    s = { ...s, selectedScopeId: "week-08" };
     const reset = resetKitty(s);
     expect(reset.xp).toBe(0);
     expect(reset.correctCount).toBe(0);
@@ -216,13 +216,13 @@ describe("resetKitty", () => {
     expect(reset.categoryCorrect).toEqual(s.categoryCorrect);
     expect(reset.bestStreak).toBe(s.bestStreak);
     expect(reset.recentHanzi).toEqual(s.recentHanzi);
-    expect(reset.selectedWeekStart).toBe("2026-04-20");
+    expect(reset.selectedScopeId).toBe("week-08");
   });
 });
 
-describe("selectedWeekStart", () => {
+describe("selectedScopeId", () => {
   it("defaults to null", () => {
-    expect(initialState().selectedWeekStart).toBeNull();
+    expect(initialState().selectedScopeId).toBeNull();
   });
 });
 

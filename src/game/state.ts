@@ -18,9 +18,8 @@ export interface GameState {
   seenHanzi: string[];
   stars: DailyStars;
   categoryCorrect: CategoryCorrect;
-  /** ISO start date of the curriculum week the child picked to focus on, or
-   *  null for "free play" (cumulative-through-today). */
-  selectedWeekStart: string | null;
+  /** Date-independent week/category scope, or null for all First Grade. */
+  selectedScopeId: string | null;
   /** When true, the app shows a flashcard view for dictation practice
    *  instead of the round-based game. No XP / streaks update in this mode. */
   teacherMode: boolean;
@@ -61,7 +60,7 @@ export function initialState(): GameState {
     seenHanzi: [],
     stars: { date: todayIso(), count: 0 },
     categoryCorrect: {},
-    selectedWeekStart: null,
+    selectedScopeId: null,
     teacherMode: false,
   };
 }
@@ -150,7 +149,7 @@ export function recordAnswer(
     seenHanzi,
     stars: { date: today, count: nextStarCount },
     categoryCorrect,
-    selectedWeekStart: state.selectedWeekStart,
+    selectedScopeId: state.selectedScopeId,
     teacherMode: state.teacherMode,
   };
 
@@ -177,7 +176,7 @@ export function resetKitty(state: GameState): GameState {
     stars: state.stars,
     categoryCorrect: state.categoryCorrect,
     bestStreak: state.bestStreak,
-    selectedWeekStart: state.selectedWeekStart,
+    selectedScopeId: state.selectedScopeId,
     teacherMode: state.teacherMode,
   };
 }

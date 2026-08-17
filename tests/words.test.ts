@@ -14,13 +14,10 @@ describe("word bank integrity", () => {
     }
   });
 
-  it("english glosses are all unique (so distractors can't collide with the answer)", () => {
-    const seen = new Set<string>();
+  it("tracks every category that contains a shared word", () => {
     for (const w of WORDS) {
-      expect(seen.has(w.english), `duplicate english: ${w.english}`).toBe(
-        false,
-      );
-      seen.add(w.english);
+      expect(w.categories).toContain(w.category);
+      expect(new Set(w.categories).size).toBe(w.categories.length);
     }
   });
 

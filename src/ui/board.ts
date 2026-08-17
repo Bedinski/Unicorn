@@ -6,7 +6,7 @@ export function renderBoard(round: McqRound): string {
     .map(
       (choice, idx) => `
       <button class="choice"
-              data-choice="${escapeAttr(choice.english)}"
+              data-choice="${escapeAttr(choice.hanzi)}"
               data-index="${idx}"
               type="button">
         <span class="choice-label">${escapeHtml(choice.english)}</span>
@@ -28,11 +28,11 @@ export function renderBoard(round: McqRound): string {
 
 export function markChoice(
   root: ParentNode,
-  english: string,
+  hanzi: string,
   state: "correct" | "incorrect" | "reveal",
 ): void {
   const btn = root.querySelector(
-    `button.choice[data-choice="${cssEscape(english)}"]`,
+    `button.choice[data-choice="${cssEscape(hanzi)}"]`,
   );
   if (btn) btn.classList.add(`choice--${state}`);
 }
@@ -43,7 +43,7 @@ export function disableChoices(root: ParentNode): void {
   });
 }
 
-export function choiceFromEvent(event: Event): Word["english"] | null {
+export function choiceFromEvent(event: Event): Word["hanzi"] | null {
   const target = event.target;
   if (!(target instanceof Element)) return null;
   const btn = target.closest<HTMLButtonElement>("button.choice");

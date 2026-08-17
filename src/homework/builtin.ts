@@ -1,42 +1,47 @@
-import { CURRICULUM } from "@/data/curriculum";
-import { DICTATION } from "@/data/dictation";
-import { WORDS, type WordCategory } from "@/data/words";
+import { FIRST_GRADE_WEEKS, STUDY_CATEGORIES, wordsForCategory, wordsForWeek } from "@/data/firstGrade";
 import type { HomeworkAssignment, HomeworkItem } from "./model";
 
-const dictationByHanzi = new Map(DICTATION.map((entry) => [entry.hanzi, entry]));
-
-function dictationItems(content: readonly string[]): HomeworkItem[] {
-  return content.map((hanzi) => {
-    // Dictation metadata deliberately wins over the broader vocabulary catalog.
-    const entry = dictationByHanzi.get(hanzi);
-    return {
-      id: hanzi,
-      hanzi,
-      pinyin: entry?.pinyin ?? "",
-      english: entry?.english ?? "",
-      skills: ["learn", "write", "recall"],
-    };
-  });
-}
-
-function recognitionItems(content: readonly string[]): HomeworkItem[] {
-  const categories = new Set(content as WordCategory[]);
-  return WORDS.filter((word) => categories.has(word.category)).map((word) => ({
-    id: word.hanzi,
-    hanzi: word.hanzi,
-    pinyin: word.pinyin,
-    english: word.english,
+function items(words: ReturnType<typeof wordsForCategory>): HomeworkItem[] {
+  return words.map(({ hanzi, pinyin, english }) => ({
+    id: hanzi,
+    hanzi,
+    pinyin,
+    english,
     skills: ["learn", "write", "recall"],
   }));
 }
 
-export const BUILTIN_ASSIGNMENTS: readonly HomeworkAssignment[] = CURRICULUM.map(
-  (week) => ({
-    id: `builtin:${week.startDate}`,
-    title: week.type === "dictation" ? "Writing & Dictation" : "Character Recognition",
-    startDate: week.startDate,
-    dueDate: week.endDate,
-    items: week.type === "dictation" ? dictationItems(week.content) : recognitionItems(week.content),
-    source: "builtin",
-  }),
-);
+const weekAssignments: HomeworkAssignment[] = FIRST_GRADE_WEEKS.map((week) => ({
+  id: `builtin:${week.id}`,
+  title: `Week ${week.number}: ${week.title}`,
+  startDate: "2000-01-01",
+  dueDate: "2099-12-31",
+  items: items(wordsForWeek(week)),
+  source: "builtin",
+  curriculum: {
+    kind: "week",
+    label: `Week ${week.number}`,
+    sequence: week.number,
+    description: week.description,
+  },
+}));
+
+const categoryAssignments: HomeworkAssignment[] = STUDY_CATEGORIES.map((category) => ({
+  id: `builtin:category:${category.id}`,
+  title: category.label,
+  startDate: "2000-01-01",
+  dueDate: "2099-12-31",
+  items: items(wordsForCategory(category.id)),
+  source: "builtin",
+  curriculum: {
+    kind: "category",
+    label: category.label,
+    group: category.group,
+    description: `${category.group} practice`,
+  },
+}));
+
+export const BUILTIN_ASSIGNMENTS: readonly HomeworkAssignment[] = [
+  ...weekAssignments,
+  ...categoryAssignments,
+];

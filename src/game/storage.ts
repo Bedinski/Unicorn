@@ -1,14 +1,14 @@
 import { initialState, type GameState } from "./state";
 
 const STORAGE_KEY = "magical-kitty-mandarin:v1";
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 interface StoredShape {
   version: number;
   state: Partial<GameState>;
 }
 
-function mergeWithDefaults(partial: Partial<GameState>): GameState {
+function mergeWithDefaults(partial: Partial<GameState> & { selectedWeekStart?: unknown }): GameState {
   const base = initialState();
   const merged: GameState = {
     xp: typeof partial.xp === "number" ? partial.xp : base.xp,
@@ -42,10 +42,10 @@ function mergeWithDefaults(partial: Partial<GameState>): GameState {
       partial.categoryCorrect && typeof partial.categoryCorrect === "object"
         ? { ...partial.categoryCorrect }
         : base.categoryCorrect,
-    selectedWeekStart:
-      typeof partial.selectedWeekStart === "string"
-        ? partial.selectedWeekStart
-        : base.selectedWeekStart,
+    selectedScopeId:
+      typeof partial.selectedScopeId === "string"
+        ? partial.selectedScopeId
+        : base.selectedScopeId,
     teacherMode:
       typeof partial.teacherMode === "boolean"
         ? partial.teacherMode

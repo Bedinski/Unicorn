@@ -79,6 +79,18 @@ describe("pickDistractors", () => {
     expect(new Set(d.map((w) => w.english)).size).toBe(2);
   });
 
+  it("never presents two identical English choice labels", () => {
+    const answer = { ...first, english: "answer" };
+    const duplicates = [
+      answer,
+      { ...rest[0], english: "same meaning" },
+      { ...rest[1], english: "same meaning" },
+      { ...rest[2], english: "different meaning" },
+    ];
+    const distractors = pickDistractors(answer, duplicates, 2, seededRng(9));
+    expect(new Set(distractors.map((word) => word.english)).size).toBe(2);
+  });
+
   it("throws if there are not enough distractors", () => {
     expect(() =>
       pickDistractors(first, [first, rest[0]], 3, seededRng(1)),

@@ -27,7 +27,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("homework is the default experience and Free Play remains available", async ({ page }) => {
-  await expect(page.getByRole("heading", { name: "Magical Kitty Mandarin" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "First Grade Mandarin" })).toBeVisible();
   await expect(page.getByTestId("assignment-card")).toBeVisible();
   await expect(page.getByRole("button", { name: /Start mission/ })).toBeVisible();
   await expect(page.getByText("Answer from the very first screen")).toBeVisible();
@@ -35,12 +35,26 @@ test("homework is the default experience and Free Play remains available", async
   await page.getByRole("button", { name: /Free Play/ }).click();
   await expect(page.getByRole("button", { name: /Back to Homework/ })).toBeVisible();
   await expect(page.getByLabel("Practice focus")).toBeVisible();
+  await expect(page.getByLabel("Study set:")).toContainText("Week 1: School Places");
+  await expect(page.getByLabel("Study set:")).toContainText("Colors");
+});
+
+test("built-in study can be selected by week or category without dates", async ({ page }) => {
+  const picker = page.getByRole("combobox", { name: "Choose by week or category" });
+  await expect(picker.locator('optgroup[label="By week"] option')).toHaveCount(12);
+  await expect(picker.locator('optgroup[label="By category"] option')).toHaveCount(23);
+  await expect(picker).not.toContainText(/20\d\d/);
+
+  await picker.selectOption("builtin:week-03");
+  await expect(page.getByTestId("assignment-card")).toContainText("Week 3: School Supplies");
+  await picker.selectOption("builtin:category:hfw-colors");
+  await expect(page.getByTestId("assignment-card")).toContainText("High Frequency Words · Colors");
 });
 
 test("a parent can paste, validate, save, and edit a weekly assignment", async ({ page }) => {
   await createAssignment(page);
   await expect(page.getByTestId("assignment-card")).toContainText("September Characters");
-  await expect(page.getByRole("combobox", { name: "Homework week" }))
+  await expect(page.getByRole("combobox", { name: "Choose by week or category" }))
     .toHaveValue("custom:2026-09-08:september-characters");
 
   await page.getByRole("button", { name: /Manage/ }).click();
@@ -102,7 +116,7 @@ test("a weekly list becomes connected three-character mixed missions", async ({ 
   }
 
   await expect(page.getByTestId("session-summary")).toContainText("Seed planted");
-  await expect(page.getByTestId("session-summary")).not.toContainText("Weekly homework complete");
+  await expect(page.getByTestId("session-summary")).not.toContainText("Week complete");
   await page.getByRole("button", { name: "Play another mission" }).click();
   await expect(page.getByTestId("study-card")).toContainText("大");
 });
@@ -124,7 +138,7 @@ test("three fast question styles complete a one-character mission", async ({ pag
   await expect(page.getByTestId("session-summary")).toContainText("Seed planted");
   await expect(page.getByTestId("session-summary")).toContainText("You finished every quick question");
   await page.getByRole("button", { name: "See my garden" }).click();
-  await expect(page.getByTestId("assignment-card")).toContainText("Weekly homework complete");
+  await expect(page.getByTestId("assignment-card")).toContainText("Week complete");
 });
 
 test("a wrong answer is revealed immediately and repeated in quick review", async ({ page }) => {

@@ -1,6 +1,6 @@
 # Magical Kitty Mandarin — Product Overview
 
-Last updated: 2026-08-10
+Last updated: 2026-08-16
 
 This document is the durable product and implementation context for Magical Kitty Mandarin. Read it before changing the child experience, learning loop, progression, art, curriculum model, authoring tools, or architecture.
 
@@ -73,7 +73,7 @@ The current pure TypeScript session engine builds one rapid mixed queue using th
 ### Home
 
 - One primary mission card with 2–3 focus items, a 2–4 minute estimate, and the next garden change.
-- Weekly assignment selection remains available but visually secondary.
+- Date-independent First Grade selection is grouped into **By week** and **By category** and remains visually secondary.
 - Parent tools remain accessible outside the primary child path.
 
 ### Mission
@@ -174,3 +174,7 @@ The string-rendered UI should eventually move to React or Preact components, but
 - Mandatory Learn/Write/Remember phases were removed after product review: they slowed the child down and lost the original answer-first game loop.
 - Missions now mix three immediate question styles and requeue misses for quick review; handwriting is optional.
 - The legacy SVG kitty is not the target art direction. New production art begins with the painted mission garden and a single coherent mascot identity.
+- The 2026–27 First Grade source pack is modeled without school-calendar dates. Twelve study guides become Week 1–12; the High Frequency Word master list, complete dictation list, and Meizhou vocabulary chapters become category packs.
+- Mandarin Songs, the Meizhou textbook directory, and Kinder home-review resources are intentionally outside the current curriculum scope.
+- Homework and Free Play must share one canonical vocabulary catalog so a week/category selection behaves consistently everywhere.
+- Authentic source vocabulary can have duplicate English glosses. Choice identity therefore uses Hanzi, while English remains display content.

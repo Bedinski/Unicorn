@@ -120,14 +120,14 @@ export class HomeworkApp {
     return `
       <header class="homework-header">
         <div>
-          <h1>Magical Kitty Mandarin</h1>
-          <p>Small steps, strong characters.</p>
+          <h1>First Grade Mandarin</h1>
+          <p>Quick questions, growing confidence.</p>
         </div>
         <div class="homework-header-mark" aria-hidden="true">🐱</div>
       </header>
       <nav class="app-nav" aria-label="Main navigation">
         <button class="app-nav-btn ${active === "homework" ? "app-nav-btn--active" : ""}"
-                data-action="home" type="button">📚 Homework</button>
+                data-action="home" type="button">📚 Study</button>
         <button class="app-nav-btn" data-action="free-play" type="button">🎮 Free Play</button>
         <button class="app-nav-btn ${active === "author" ? "app-nav-btn--active" : ""}"
                 data-action="author" type="button">⚙️ Manage</button>
@@ -158,8 +158,9 @@ export class HomeworkApp {
       ? assignment.items.filter((item) => savedSession!.missionItemIds.includes(item.id))
       : planMissionItems(assignment, assignmentProgress);
     const garden = gardenStageForMissions(this.progress.getTotalMissionsCompleted());
+    const setKind = assignment.curriculum?.kind ?? "week";
     const status = isComplete
-      ? "Weekly homework complete"
+      ? `${setKind === "week" ? "Week" : "Study set"} complete`
       : practiced > 0
         ? `${practiced}/${assignment.items.length} characters growing stronger`
         : "Ready for the first mission";
@@ -172,13 +173,10 @@ export class HomeworkApp {
 
     return `${this.renderHeader("homework")}
       <main class="homework-main">
-        <section class="assignment-picker" aria-label="Homework week">
-          <label for="homework-assignment">Homework week</label>
+        <section class="assignment-picker" aria-label="Study set">
+          <label for="homework-assignment">Choose by week or category</label>
           <select id="homework-assignment" data-homework-assignment>
-            ${assignments.map((item) => `
-              <option value="${escapeAttr(item.id)}"${item.id === assignment.id ? " selected" : ""}>
-                ${escapeHtml(shortDate(item.startDate))} · ${escapeHtml(item.title)}${item.source === "custom" ? " ★" : ""}
-              </option>`).join("")}
+            ${renderAssignmentOptions(assignments, assignment.id)}
           </select>
         </section>
 
@@ -188,8 +186,8 @@ export class HomeworkApp {
           <div class="assignment-copy mission-hero-copy">
             <div class="assignment-eyebrow">Next ${missionMinutes}-minute mission</div>
             <h2>${canResume ? "Your kitty is waiting" : garden.name}</h2>
-            <div class="mission-assignment-label">${escapeHtml(assignment.title)} · ${escapeHtml(formatDateRange(assignment.startDate, assignment.dueDate))}</div>
-            <p>${escapeHtml(garden.message)}</p>
+            <div class="mission-assignment-label">${escapeHtml(assignmentLabel(assignment))}</div>
+            <p>${escapeHtml(assignment.curriculum?.description ?? garden.message)}</p>
             <ul class="mission-focus" aria-label="Mission characters">${chips}</ul>
             <div class="assignment-status ${isComplete ? "assignment-status--complete" : ""}">
               ${garden.icon} ${escapeHtml(status)}
@@ -204,7 +202,7 @@ export class HomeworkApp {
         <section class="assignment-content" aria-labelledby="characters-title">
           <div class="section-heading">
             <div>
-              <div class="section-kicker">Weekly homework</div>
+              <div class="section-kicker">${setKind === "week" ? "Weekly practice" : "Category practice"}</div>
               <h2 id="characters-title">${assignment.items.length} characters & words</h2>
             </div>
             <span class="session-length">${assignmentProgress.missionsCompleted} missions finished</span>
@@ -326,7 +324,7 @@ export class HomeworkApp {
               <div>${assignment.items.filter((item) => needsWork.has(item.id)).map((item) => `<span lang="zh-Hant">${escapeHtml(item.hanzi)}</span>`).join("")}</div>
             </div>`
             : `<div class="all-mastered">✦ You finished every quick question!</div>`}
-        ${weekComplete ? `<div class="week-complete">Weekly homework complete — beautiful work!</div>` : ""}
+        ${weekComplete ? `<div class="week-complete">${assignment.curriculum?.kind === "category" ? "Study set" : "Week"} complete — beautiful work!</div>` : ""}
         <button class="primary-action primary-action--large" data-action="finish-session" type="button">See my garden</button>
         <button class="secondary-action" data-action="restart-session" type="button">Play another mission</button>
       </section>
@@ -715,6 +713,32 @@ function stableHash(value: string): number {
   let hash = 0;
   for (const character of value) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
   return hash;
+}
+
+function assignmentLabel(assignment: HomeworkAssignment): string {
+  if (assignment.curriculum?.kind === "week") return `First Grade · ${assignment.title}`;
+  if (assignment.curriculum?.kind === "category") {
+    return `${assignment.curriculum.group ?? "Category"} · ${assignment.title}`;
+  }
+  return `${assignment.title} · ${formatDateRange(assignment.startDate, assignment.dueDate)}`;
+}
+
+function renderAssignmentOptions(assignments: readonly HomeworkAssignment[], selectedId: string): string {
+  const option = (assignment: HomeworkAssignment) => `
+    <option value="${escapeAttr(assignment.id)}"${assignment.id === selectedId ? " selected" : ""}>
+      ${escapeHtml(assignment.title)}${assignment.source === "custom" ? " ★" : ""}
+    </option>`;
+  const weeks = assignments
+    .filter((assignment) => assignment.curriculum?.kind === "week")
+    .sort((a, b) => (a.curriculum?.sequence ?? 0) - (b.curriculum?.sequence ?? 0));
+  const categories = assignments.filter((assignment) => assignment.curriculum?.kind === "category");
+  const custom = assignments.filter((assignment) => assignment.source === "custom");
+  const groups = [
+    `<optgroup label="By week">${weeks.map(option).join("")}</optgroup>`,
+    `<optgroup label="By category">${categories.map(option).join("")}</optgroup>`,
+  ];
+  if (custom.length > 0) groups.push(`<optgroup label="My lists">${custom.map(option).join("")}</optgroup>`);
+  return groups.join("");
 }
 
 function localIso(date: Date): string {

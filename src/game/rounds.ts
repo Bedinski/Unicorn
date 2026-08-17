@@ -50,13 +50,19 @@ export function pickDistractors(
   count: number,
   rng: Rng = Math.random,
 ): Word[] {
-  const pool = words.filter((w) => w.english !== answer.english);
+  const seenMeanings = new Set([answer.english]);
+  const pool = shuffle(words.filter((word) => word.hanzi !== answer.hanzi), rng)
+    .filter((word) => {
+      if (seenMeanings.has(word.english)) return false;
+      seenMeanings.add(word.english);
+      return true;
+    });
   if (pool.length < count) {
     throw new Error(
       `Not enough distractors: need ${count}, have ${pool.length}`,
     );
   }
-  return shuffle(pool, rng).slice(0, count);
+  return pool.slice(0, count);
 }
 
 export interface RoundWeights {

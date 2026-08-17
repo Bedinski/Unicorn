@@ -1,14 +1,13 @@
 /// <reference types="vite/client" />
 import "./style.css";
 import {
-  currentWeekSummary,
+  CATEGORY_SCOPES,
+  WEEK_SCOPES,
   drawPool,
-  poolsForWeek,
+  poolsForScope,
   recognitionPool,
-  weekByStart,
-  weekLabel,
+  scopeById,
 } from "@/game/curriculum";
-import { CURRICULUM } from "@/data/curriculum";
 import {
   MAX_LEVEL,
   isMaxLevel,
@@ -102,15 +101,14 @@ function nextRound(): Round {
 }
 
 /**
- * The active practice pools. If the player has selected a curriculum week
- * to focus on (test-prep mode) we narrow both pools to that week's
- * content; otherwise we fall back to the taught-so-far pools.
+ * The active practice pools. A selected week or category narrows both
+ * pools; otherwise every item in the First Grade catalog is available.
  */
 function currentPools(): { recognition: ReturnType<typeof recognitionPool>; draw: ReturnType<typeof drawPool> } {
-  if (state.selectedWeekStart) {
-    const week = weekByStart(state.selectedWeekStart);
-    if (week) {
-      const { recognitionPool: recog, drawPool: drawn } = poolsForWeek(week);
+  if (state.selectedScopeId) {
+    const scope = scopeById(state.selectedScopeId);
+    if (scope) {
+      const { recognitionPool: recog, drawPool: drawn } = poolsForScope(scope);
       return { recognition: recog, draw: drawn };
     }
   }
@@ -160,21 +158,17 @@ function render(): void {
         <div class="level-chip" data-level>Level ${level} / ${MAX_LEVEL}</div>
       </div>
     </header>
-    ${
-      currentWeekSummary()
-        ? `<div class="week-banner" data-week>📖 ${currentWeekSummary()}</div>`
-        : ""
-    }
+    <div class="week-banner" data-week>📖 First Grade · ${activeScopeLabel()}</div>
 
     <section class="practice-select" aria-label="Practice focus">
       <button class="homework-return" data-open-homework type="button">
         📚 Back to Homework
       </button>
       <div class="practice-row">
-        <label class="practice-select-label" for="practice-week">🎯 Practice:</label>
+        <label class="practice-select-label" for="practice-week">🎯 Study set:</label>
         <select id="practice-week" class="practice-select-input" data-practice-select>
-          <option value=""${state.selectedWeekStart ? "" : " selected"}>Everything taught so far</option>
-          ${renderWeekOptions()}
+          <option value=""${state.selectedScopeId ? "" : " selected"}>All First Grade</option>
+          ${renderScopeOptions()}
         </select>
       </div>
       <button class="teacher-toggle ${state.teacherMode ? "teacher-toggle--on" : ""}"
@@ -264,24 +258,19 @@ function earnedCategoriesList() {
   );
 }
 
-function renderWeekOptions(): string {
-  const todayIsoStr = isoToday();
-  return CURRICULUM.map((w) => {
-    const selected = state.selectedWeekStart === w.startDate ? " selected" : "";
-    const current = todayIsoStr >= w.startDate && todayIsoStr <= w.endDate;
-    const star = current ? " ★" : "";
-    const type = w.type === "dictation" ? "✍️" : "📖";
-    const label = weekLabel(w);
-    return `<option value="${w.startDate}"${selected}>${type} ${label}${star}</option>`;
+function renderScopeOptions(): string {
+  const renderOptions = (scopes: typeof WEEK_SCOPES) => scopes.map((scope) => {
+    const selected = state.selectedScopeId === scope.id ? " selected" : "";
+    return `<option value="${scope.id}"${selected}>${scope.label}</option>`;
   }).join("");
+  return `<optgroup label="By week">${renderOptions(WEEK_SCOPES)}</optgroup>
+    <optgroup label="By category">${renderOptions(CATEGORY_SCOPES)}</optgroup>`;
 }
 
-function isoToday(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = `${now.getMonth() + 1}`.padStart(2, "0");
-  const d = `${now.getDate()}`.padStart(2, "0");
-  return `${y}-${m}-${d}`;
+function activeScopeLabel(): string {
+  return state.selectedScopeId
+    ? scopeById(state.selectedScopeId)?.label ?? "All First Grade"
+    : "All First Grade";
 }
 
 function renderRoundBoard(r: Round): string {
@@ -374,8 +363,8 @@ function onToggleTeacherMode(): void {
 function onPracticeWeekChange(event: Event): void {
   const select = event.target as HTMLSelectElement;
   const value = select.value || null;
-  if (value === state.selectedWeekStart) return;
-  state = { ...state, selectedWeekStart: value };
+  if (value === state.selectedScopeId) return;
+  state = { ...state, selectedScopeId: value };
   saveState(state);
   if (state.teacherMode) {
     rebuildTeacherDeck();
@@ -407,7 +396,7 @@ function onMcqClick(event: Event): void {
   const chosen = choiceFromEvent(event);
   if (!chosen) return;
 
-  const wasCorrect = chosen === round.answer.english;
+  const wasCorrect = chosen === round.answer.hanzi;
   const feedbackEl = app!.querySelector<HTMLElement>("[data-feedback]");
   const boardEl = app!.querySelector<HTMLElement>("[data-board]");
   if (!boardEl || !feedbackEl) return;
@@ -423,7 +412,7 @@ function onMcqClick(event: Event): void {
     markChoice(boardEl, chosen, "incorrect");
     showFeedback(feedbackEl, encourageMessage(), "incorrect");
     window.setTimeout(
-      () => markChoice(boardEl, round.answer.english, "reveal"),
+      () => markChoice(boardEl, round.answer.hanzi, "reveal"),
       500,
     );
     flash(boardEl, "board--shake", 500);

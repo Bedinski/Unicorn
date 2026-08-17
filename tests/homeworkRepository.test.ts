@@ -34,7 +34,7 @@ describe("HomeworkRepository", () => {
 
   it("ignores corrupted custom storage", () => {
     storage.setItem("magical-kitty-mandarin:homework-assignments:v1", "not json");
-    expect(new HomeworkRepository(storage).list().length).toBe(14);
+    expect(new HomeworkRepository(storage).list().length).toBe(35);
   });
 
   it("keeps valid custom weeks when another stored entry is malformed", () => {

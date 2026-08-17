@@ -15,6 +15,13 @@ export interface HomeworkAssignment {
   dueDate: string;
   items: readonly HomeworkItem[];
   source: "builtin" | "custom";
+  curriculum?: {
+    kind: "week" | "category";
+    label: string;
+    group?: string;
+    sequence?: number;
+    description?: string;
+  };
 }
 
 export interface ValidationIssue {
@@ -62,8 +69,8 @@ export function validateAssignment(
   if (assignment.items.length === 0) {
     issues.push({ path: "items", message: "Add at least one character or word." });
   }
-  if (assignment.items.length > 40) {
-    issues.push({ path: "items", message: "Keep an assignment to 40 items or fewer." });
+  if (assignment.items.length > 120) {
+    issues.push({ path: "items", message: "Keep an assignment to 120 items or fewer." });
   }
 
   const seenHanzi = new Set<string>();
