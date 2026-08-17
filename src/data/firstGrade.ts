@@ -14,6 +14,8 @@ export interface FirstGradeWord {
   english: string;
   category: StudyCategoryId;
   categories: readonly StudyCategoryId[];
+  /** Present only on a weekly writing guide, not in a category master list. */
+  weeklyOnly?: boolean;
 }
 
 type RawItem = readonly [hanzi: string, pinyin: string, english: string];
@@ -45,12 +47,12 @@ export const STUDY_CATEGORIES: readonly StudyCategoryDefinition[] = [
   category("hfw-family", "Family", "High Frequency Words", "👨‍👩‍👧", [
     ["爺爺", "yéye", "paternal grandfather"], ["奶奶", "nǎinai", "paternal grandmother"],
     ["外公", "wàigōng", "maternal grandfather"], ["外婆", "wàipó", "maternal grandmother"],
-    ["叔叔", "shúshu", "uncle"], ["阿姨", "āyí", "aunt"], ["父母", "fùmǔ", "parents"], ["生日", "shēngrì", "birthday"],
+    ["叔叔", "shúshu", "uncle"], ["阿姨", "āyí", "aunt"],
   ]),
   category("hfw-school-places", "School Places & Directions", "High Frequency Words", "🏫", [
     ["東", "dōng", "east"], ["南", "nán", "south"], ["西", "xī", "west"], ["北", "běi", "north"],
     ["教室", "jiàoshì", "classroom"], ["圖書館", "túshūguǎn", "library"], ["操場", "cāochǎng", "playground"],
-    ["禮堂", "lǐtáng", "auditorium"], ["餐廳", "cāntīng", "restaurant"], ["食堂", "shítáng", "cafeteria"],
+    ["禮堂", "lǐtáng", "auditorium"], ["餐廳", "cāntīng", "cafeteria"], ["食堂", "shítáng", "cafeteria"],
     ["洗手間", "xǐshǒujiān", "restroom"], ["辦公室", "bàngōngshì", "office"],
   ]),
   category("hfw-taste", "Taste", "High Frequency Words", "🍓", [
@@ -96,22 +98,9 @@ export const STUDY_CATEGORIES: readonly StudyCategoryDefinition[] = [
     ["牠", "tā", "it (animal)"], ["歲", "suì", "years old"], ["電影院", "diànyǐngyuàn", "movie theater"],
     ["連一連", "lián yì lián", "connect the matches"], ["圈一圈", "quān yì quān", "circle it"],
     ["名字", "míngzi", "name"], ["您", "nín", "you (respectful)"],
+    ["父母", "fùmǔ", "parents"], ["生日", "shēngrì", "birthday"],
   ]),
   category("dictation", "Complete Dictation List", "Dictation", "✍️", [
-    // Standalone characters from the twelve weekly dictation guides. Keeping
-    // them here lets a child practise exactly what appears on each guide even
-    // when the master list presents the same characters inside compounds.
-    ["是", "shì", "be; is"], ["有", "yǒu", "have"], ["家", "jiā", "home"],
-    ["學", "xué", "study"], ["校", "xiào", "school"], ["名", "míng", "name"],
-    ["字", "zì", "character"], ["書", "shū", "book"], ["愛", "ài", "love"],
-    ["快", "kuài", "fast"], ["樂", "lè", "happy"], ["生", "shēng", "life; birth"],
-    ["氣", "qì", "air; energy"], ["所", "suǒ", "place"], ["以", "yǐ", "by; with"],
-    ["兔", "tù", "rabbit"], ["子", "zi", "child; suffix"], ["他", "tā", "he"],
-    ["們", "men", "plural marker"], ["電", "diàn", "electricity"], ["影", "yǐng", "image"],
-    ["具", "jù", "tool; item"], ["唱", "chàng", "sing"], ["歌", "gē", "song"],
-    ["打", "dǎ", "hit; play"], ["球", "qiú", "ball"], ["很", "hěn", "very"],
-    ["因", "yīn", "cause"], ["為", "wèi", "because; for"], ["可", "kě", "can"],
-    ["汁", "zhī", "juice"], ["淋", "lín", "pour; drench"],
     ["跟", "gēn", "with; follow"], ["在", "zài", "be at; in progress"], ["再", "zài", "again"], ["因為", "yīnwèi", "because"],
     ["可是", "kěshì", "but"], ["可以", "kěyǐ", "can; may"], ["所以", "suǒyǐ", "therefore"], ["一起", "yìqǐ", "together"],
     ["時候", "shíhou", "time; moment"], ["這裡", "zhèlǐ", "here"], ["裏面", "lǐmiàn", "inside"], ["什麼", "shénme", "what"],
@@ -184,6 +173,21 @@ export const STUDY_CATEGORIES: readonly StudyCategoryDefinition[] = [
   ]),
 ];
 
+/** Standalone characters shown only on the writing portions of weekly guides. */
+export const WEEKLY_DICTATION_ITEMS: readonly RawItem[] = [
+  ["是", "shì", "be; is"], ["有", "yǒu", "have"], ["家", "jiā", "home"],
+  ["學", "xué", "study"], ["校", "xiào", "school"], ["名", "míng", "name"],
+  ["字", "zì", "character"], ["書", "shū", "book"], ["愛", "ài", "love"],
+  ["快", "kuài", "fast"], ["樂", "lè", "happy"], ["生", "shēng", "life; birth"],
+  ["氣", "qì", "air; energy"], ["所", "suǒ", "place"], ["以", "yǐ", "by; with"],
+  ["兔", "tù", "rabbit"], ["子", "zi", "child; suffix"], ["他", "tā", "he"],
+  ["們", "men", "plural marker"], ["電", "diàn", "electricity"], ["影", "yǐng", "image"],
+  ["具", "jù", "tool; item"], ["唱", "chàng", "sing"], ["歌", "gē", "song"],
+  ["打", "dǎ", "hit; play"], ["球", "qiú", "ball"], ["很", "hěn", "very"],
+  ["因", "yīn", "cause"], ["為", "wèi", "because; for"], ["可", "kě", "can"],
+  ["汁", "zhī", "juice"], ["淋", "lín", "pour; drench"],
+];
+
 const wordIndex = new Map<string, FirstGradeWord>();
 for (const definition of STUDY_CATEGORIES) {
   for (const [hanzi, pinyin, english] of definition.items) {
@@ -193,11 +197,25 @@ for (const definition of STUDY_CATEGORIES) {
       : { hanzi, pinyin, english, category: definition.id, categories: [definition.id] });
   }
 }
+for (const [hanzi, pinyin, english] of WEEKLY_DICTATION_ITEMS) {
+  if (!wordIndex.has(hanzi)) {
+    wordIndex.set(hanzi, {
+      hanzi,
+      pinyin,
+      english,
+      category: "dictation",
+      categories: [],
+      weeklyOnly: true,
+    });
+  }
+}
 
 export const FIRST_GRADE_WORDS: readonly FirstGradeWord[] = [...wordIndex.values()];
 
 export function wordsForCategory(id: StudyCategoryId): FirstGradeWord[] {
-  return FIRST_GRADE_WORDS.filter((word) => word.categories.includes(id));
+  const definition = STUDY_CATEGORIES.find((candidate) => candidate.id === id);
+  if (!definition) return [];
+  return definition.items.map(([hanzi]) => wordIndex.get(hanzi)!).filter(Boolean);
 }
 
 export interface FirstGradeWeek {
@@ -205,29 +223,99 @@ export interface FirstGradeWeek {
   number: number;
   title: string;
   description: string;
+  sourceGuide: string;
   categoryIds: readonly StudyCategoryId[];
-  extraHanzi: readonly string[];
+  recognitionHanzi: readonly string[];
+  dictationHanzi: readonly string[];
 }
 
+/**
+ * A timeless learning sequence, not last year's dated test order. High
+ * Frequency Word guides retain their source order on odd weeks; Meizhou
+ * guides are placed on even weeks in ascending chapter order.
+ */
 export const FIRST_GRADE_WEEKS: readonly FirstGradeWeek[] = [
-  { id: "week-01", number: 1, title: "School Places", description: "Places, directions, and the first dictation set", categoryIds: ["hfw-school-places"], extraHanzi: ["是", "個", "去", "有", "東", "西"] },
-  { id: "week-02", number: 2, title: "Meizhou Chapter 8", description: "Movement, games, and action dictation", categoryIds: ["meizhou-8"], extraHanzi: ["跟", "走", "跑", "跳", "回", "家"] },
-  { id: "week-03", number: 3, title: "School Supplies", description: "Classroom objects and school dictation", categoryIds: ["hfw-school-supplies"], extraHanzi: ["兩", "來", "走", "學", "校"] },
-  { id: "week-04", number: 4, title: "Meizhou Chapter 1", description: "Names, family, objects, and writing characters", categoryIds: ["meizhou-1"], extraHanzi: ["寫", "名", "字", "會", "看", "書"] },
-  { id: "week-05", number: 5, title: "Meizhou Chapter 2", description: "Food, animals, speaking, and key verbs", categoryIds: ["meizhou-2"], extraHanzi: ["想", "要", "吃", "給"] },
-  { id: "week-06", number: 6, title: "Family & Hobbies", description: "Family members, favorite activities, and writing pieces", categoryIds: ["hfw-family", "hfw-hobbies"], extraHanzi: ["玩", "具", "唱", "歌", "打", "球"] },
-  { id: "week-07", number: 7, title: "Meizhou Chapter 3", description: "Family, feelings, size, food, and sentence building", categoryIds: ["meizhou-3"], extraHanzi: ["很", "因", "為", "可", "是"] },
-  { id: "week-08", number: 8, title: "Taste, Opposites & Feelings", description: "Describing tastes, contrasts, and emotions", categoryIds: ["hfw-taste", "hfw-opposites", "hfw-feelings"], extraHanzi: ["在", "再", "甜", "冰", "汁", "淋"] },
-  { id: "week-09", number: 9, title: "Meizhou Chapter 10", description: "Caves, effort, school, and progress", categoryIds: ["meizhou-10"], extraHanzi: ["愛", "用", "學", "來"] },
-  { id: "week-10", number: 10, title: "Action Words", description: "High-frequency verbs and six dictation characters", categoryIds: ["hfw-verbs"], extraHanzi: ["跳", "到", "快", "樂", "生", "氣"] },
-  { id: "week-11", number: 11, title: "Meizhou Chapter 4", description: "People, places, questions, animals, and pronouns", categoryIds: ["meizhou-4"], extraHanzi: ["所", "以", "狗", "貓", "兔", "子"] },
-  { id: "week-12", number: 12, title: "Weather, Body & Useful Words", description: "Weather, body parts, classroom directions, and pronouns", categoryIds: ["hfw-weather", "hfw-body-parts", "hfw-misc"], extraHanzi: ["牠", "他", "們", "電", "影"] },
+  {
+    id: "week-01", number: 1, title: "School Places", sourceGuide: "HFW School Locations",
+    description: "Places, directions, and school-location dictation", categoryIds: ["hfw-school-places"],
+    recognitionHanzi: ["東", "南", "西", "北", "教室", "圖書館", "操場", "禮堂", "餐廳", "食堂", "洗手間", "辦公室"],
+    dictationHanzi: ["是", "個", "去", "有", "東", "西"],
+  },
+  {
+    id: "week-02", number: 2, title: "Meizhou Chapter 1", sourceGuide: "MZ Chapter 1",
+    description: "Names, family, objects, and writing characters", categoryIds: ["meizhou-1"],
+    recognitionHanzi: ["牛油", "馬路", "馬桶", "鳥巢", "鯊魚", "釣魚", "名字", "寫字", "女兒", "兒子", "分數", "分開", "門把", "把手", "又來了", "合作", "合起來"],
+    dictationHanzi: ["寫", "名", "字", "會", "看", "書"],
+  },
+  {
+    id: "week-03", number: 3, title: "School Supplies", sourceGuide: "School Supplies HFW",
+    description: "The nine classroom objects from the study guide", categoryIds: ["hfw-school-supplies"],
+    recognitionHanzi: ["橡皮擦", "紙", "鉛筆", "蠟筆", "剪刀", "白膠", "桌子", "椅子", "電腦"],
+    dictationHanzi: ["兩", "來", "走", "學", "校"],
+  },
+  {
+    id: "week-04", number: 4, title: "Meizhou Chapter 2", sourceGuide: "MZ Chapter 2",
+    description: "Food, animals, speaking, and key verbs", categoryIds: ["meizhou-2"],
+    recognitionHanzi: ["一朵", "想想看", "不要", "青菜", "吃飯", "給你吃", "山羊", "綿羊", "語言", "請坐", "請假", "找錢", "蛋黃", "就是你", "說話", "說謊"],
+    dictationHanzi: ["想", "要", "吃", "給"],
+  },
+  {
+    id: "week-05", number: 5, title: "Family & Hobbies", sourceGuide: "HFW Family and Hobbies",
+    description: "Family members, favorite activities, and writing pieces", categoryIds: ["hfw-family", "hfw-hobbies"],
+    recognitionHanzi: ["爺爺", "奶奶", "外公", "外婆", "叔叔", "阿姨", "看書", "唱歌", "跳舞", "打球", "打電腦", "打電動玩具", "遊戲", "捉迷藏"],
+    dictationHanzi: ["玩", "具", "唱", "歌", "打", "球"],
+  },
+  {
+    id: "week-06", number: 6, title: "Meizhou Chapter 3", sourceGuide: "MZ Chapter 3",
+    description: "Family, feelings, size, food, and sentence building", categoryIds: ["meizhou-3"],
+    recognitionHanzi: ["爸爸", "可以", "以前", "可怕", "害怕", "中午", "很好", "很大", "太大", "牛奶", "奶奶", "還沒來", "還給", "包子", "真好玩", "一個"],
+    dictationHanzi: ["很", "因", "為", "可", "是"],
+  },
+  {
+    id: "week-07", number: 7, title: "Taste, Opposites & Feelings", sourceGuide: "HFW Taste and Opposites",
+    description: "The exact taste, contrast, and emotion subset on the guide", categoryIds: ["hfw-taste", "hfw-opposites", "hfw-feelings"],
+    recognitionHanzi: ["燙", "涼", "冰", "嚐", "喝", "酸", "甜", "苦", "辣", "鹹", "拉", "推", "乾淨", "骯髒", "高", "矮", "多", "少", "陰", "晴", "快樂", "高興", "生氣", "好笑", "害怕", "兇"],
+    dictationHanzi: ["在", "再", "甜", "冰", "汁", "淋"],
+  },
+  {
+    id: "week-08", number: 8, title: "Meizhou Chapter 4", sourceGuide: "MZ Chapter 4",
+    description: "People, places, questions, animals, and pronouns", categoryIds: ["meizhou-4"],
+    recognitionHanzi: ["前面", "開門", "門鈴", "猜拳", "兩個", "兩面", "你們", "都有", "誰的", "誰來了", "老人", "老鼠", "哥哥", "弟弟", "請問", "每天"],
+    dictationHanzi: ["所", "以", "狗", "貓", "兔", "子"],
+  },
+  {
+    id: "week-09", number: 9, title: "Action Words", sourceGuide: "Verbs HFW",
+    description: "Ten high-frequency verbs and six writing characters", categoryIds: ["hfw-verbs"],
+    recognitionHanzi: ["用", "來", "到", "回", "描", "講", "跑", "爬", "走", "跳"],
+    dictationHanzi: ["跳", "到", "快", "樂", "生", "氣"],
+  },
+  {
+    id: "week-10", number: 10, title: "Meizhou Chapter 8", sourceGuide: "MZ Chapter 8",
+    description: "Movement, games, and action dictation", categoryIds: ["meizhou-8"],
+    recognitionHanzi: ["爬樹", "賽跑", "跳繩", "跳舞", "跟著走", "翻跟斗", "起來", "蝸牛", "黑夜", "飛盤"],
+    dictationHanzi: ["跟", "走", "跑", "跳", "回", "家"],
+  },
+  {
+    id: "week-11", number: 11, title: "Weather, Body & Useful Words", sourceGuide: "HFW Weather, Body Parts and Others",
+    description: "Weather, body parts, classroom directions, and pronouns", categoryIds: ["hfw-weather", "hfw-body-parts", "hfw-misc"],
+    recognitionHanzi: ["下雪", "毛毛雨", "打雷", "閃電", "頭髮", "牙齒", "腳", "肩膀", "膝蓋", "嘴巴", "牠", "歲", "電影院", "連一連", "圈一圈", "名字", "您", "父母", "生日"],
+    dictationHanzi: ["牠", "他", "們", "電", "影"],
+  },
+  {
+    id: "week-12", number: 12, title: "Meizhou Chapter 10", sourceGuide: "MZ Chapter 10",
+    description: "Caves, effort, school, and progress", categoryIds: ["meizhou-10"],
+    recognitionHanzi: ["山洞", "破洞", "力氣", "用力", "可愛", "等了很久", "用功", "住址", "笑話", "出來", "學生", "貝殼", "一同", "同學", "進來", "進步"],
+    dictationHanzi: ["愛", "用", "學", "來"],
+  },
 ];
 
 export function wordsForWeek(week: FirstGradeWeek): FirstGradeWord[] {
-  const wanted = new Set<StudyCategoryId>(week.categoryIds);
-  const extras = new Set(week.extraHanzi);
-  return FIRST_GRADE_WORDS.filter((word) =>
-    word.categories.some((id) => wanted.has(id)) || extras.has(word.hanzi),
-  );
+  const ordered = [...week.recognitionHanzi, ...week.dictationHanzi];
+  const seen = new Set<string>();
+  return ordered.flatMap((hanzi) => {
+    if (seen.has(hanzi)) return [];
+    seen.add(hanzi);
+    const word = wordIndex.get(hanzi);
+    return word ? [word] : [];
+  });
 }

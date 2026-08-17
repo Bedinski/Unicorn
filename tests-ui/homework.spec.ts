@@ -41,13 +41,27 @@ test("homework is the default experience and Free Play remains available", async
 
 test("built-in study can be selected by week or category without dates", async ({ page }) => {
   const picker = page.getByRole("combobox", { name: "Choose by week or category" });
-  await expect(picker.locator('optgroup[label="By week"] option')).toHaveCount(12);
+  const weekOptions = picker.locator('optgroup[label="By week"] option');
+  await expect(weekOptions).toHaveText([
+    "Week 1: School Places",
+    "Week 2: Meizhou Chapter 1",
+    "Week 3: School Supplies",
+    "Week 4: Meizhou Chapter 2",
+    "Week 5: Family & Hobbies",
+    "Week 6: Meizhou Chapter 3",
+    "Week 7: Taste, Opposites & Feelings",
+    "Week 8: Meizhou Chapter 4",
+    "Week 9: Action Words",
+    "Week 10: Meizhou Chapter 8",
+    "Week 11: Weather, Body & Useful Words",
+    "Week 12: Meizhou Chapter 10",
+  ]);
   await expect(picker.locator('optgroup[label="By category"] option')).toHaveCount(23);
   await expect(picker).not.toContainText(/20\d\d/);
 
-  await picker.selectOption("builtin:week-03");
+  await picker.selectOption("builtin:first-grade-v2:week-03");
   await expect(page.getByTestId("assignment-card")).toContainText("Week 3: School Supplies");
-  await picker.selectOption("builtin:category:hfw-colors");
+  await picker.selectOption("builtin:first-grade-v2:category:hfw-colors");
   await expect(page.getByTestId("assignment-card")).toContainText("High Frequency Words · Colors");
 });
 

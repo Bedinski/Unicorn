@@ -17,7 +17,7 @@ describe("built-in First Grade study sets", () => {
   });
 
   it("contains source-specific weekly characters", () => {
-    const first = BUILTIN_ASSIGNMENTS.find((assignment) => assignment.id === "builtin:week-01")!;
+    const first = BUILTIN_ASSIGNMENTS.find((assignment) => assignment.id === "builtin:first-grade-v2:week-01")!;
     expect(first.items.map((item) => item.hanzi)).toEqual(expect.arrayContaining(["教室", "東", "西", "是", "個"]));
   });
 });

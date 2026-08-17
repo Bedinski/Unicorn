@@ -174,7 +174,8 @@ The string-rendered UI should eventually move to React or Preact components, but
 - Mandatory Learn/Write/Remember phases were removed after product review: they slowed the child down and lost the original answer-first game loop.
 - Missions now mix three immediate question styles and requeue misses for quick review; handwriting is optional.
 - The legacy SVG kitty is not the target art direction. New production art begins with the painted mission garden and a single coherent mascot identity.
-- The 2026–27 First Grade source pack is modeled without school-calendar dates. Twelve study guides become Week 1–12; the High Frequency Word master list, complete dictation list, and Meizhou vocabulary chapters become category packs.
+- The First Grade source pack is modeled without school-calendar dates. The old dated test sequence is not a curriculum sequence: HFW study guides retain their topic order while Meizhou guides are placed in ascending available chapter order (1, 2, 3, 4, 8, 10), alternating across 12 study weeks.
+- Each week contains the exact recognition subset and standalone writing characters shown by its study guide. Weekly-only writing characters must not leak into the 64-item Complete Dictation List category.
 - Mandarin Songs, the Meizhou textbook directory, and Kinder home-review resources are intentionally outside the current curriculum scope.
 - Homework and Free Play must share one canonical vocabulary catalog so a week/category selection behaves consistently everywhere.
 - Authentic source vocabulary can have duplicate English glosses. Choice identity therefore uses Hanzi, while English remains display content.

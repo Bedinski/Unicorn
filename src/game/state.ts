@@ -82,7 +82,7 @@ export const STICKER_THRESHOLD = 5;
 
 function lookupCategory(hanzi: string): WordCategory | null {
   const w = WORDS.find((x) => x.hanzi === hanzi);
-  return w ? w.category : null;
+  return w && !w.weeklyOnly ? w.category : null;
 }
 
 export function recordAnswer(
@@ -90,11 +90,14 @@ export function recordAnswer(
   promptHanzi: string,
   wasCorrect: boolean,
   now: Date = new Date(),
+  categoryOverride?: WordCategory | null,
 ): AnswerResult {
   const previousLevel = levelForXp(state.xp);
   const previouslyMax = isMaxLevel(state.xp);
 
-  const category = lookupCategory(promptHanzi);
+  const category = categoryOverride === undefined
+    ? lookupCategory(promptHanzi)
+    : categoryOverride;
   const wasNewWord = !state.seenHanzi.includes(promptHanzi);
 
   // streak

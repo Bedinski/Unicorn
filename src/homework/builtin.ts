@@ -12,7 +12,7 @@ function items(words: ReturnType<typeof wordsForCategory>): HomeworkItem[] {
 }
 
 const weekAssignments: HomeworkAssignment[] = FIRST_GRADE_WEEKS.map((week) => ({
-  id: `builtin:${week.id}`,
+  id: `builtin:first-grade-v2:${week.id}`,
   title: `Week ${week.number}: ${week.title}`,
   startDate: "2000-01-01",
   dueDate: "2099-12-31",
@@ -27,7 +27,7 @@ const weekAssignments: HomeworkAssignment[] = FIRST_GRADE_WEEKS.map((week) => ({
 }));
 
 const categoryAssignments: HomeworkAssignment[] = STUDY_CATEGORIES.map((category) => ({
-  id: `builtin:category:${category.id}`,
+  id: `builtin:first-grade-v2:category:${category.id}`,
   title: category.label,
   startDate: "2000-01-01",
   dueDate: "2099-12-31",

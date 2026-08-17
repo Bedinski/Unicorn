@@ -16,7 +16,8 @@ describe("word bank integrity", () => {
 
   it("tracks every category that contains a shared word", () => {
     for (const w of WORDS) {
-      expect(w.categories).toContain(w.category);
+      if (w.weeklyOnly) expect(w.categories).toEqual([]);
+      else expect(w.categories).toContain(w.category);
       expect(new Set(w.categories).size).toBe(w.categories.length);
     }
   });

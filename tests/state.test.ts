@@ -165,6 +165,17 @@ describe("daily stars", () => {
 });
 
 describe("category stickers", () => {
+  it("does not count weekly-only writing characters toward the master dictation sticker", () => {
+    const result = recordAnswer(initialState(), "學", true);
+    expect(result.state.categoryCorrect.dictation).toBeUndefined();
+  });
+
+  it("credits an explicitly selected category when a word belongs to multiple packs", () => {
+    const result = recordAnswer(initialState(), "名字", true, new Date(), "meizhou-1");
+    expect(result.state.categoryCorrect["meizhou-1"]).toBe(1);
+    expect(result.state.categoryCorrect["hfw-misc"]).toBeUndefined();
+  });
+
   it("awards a sticker when a category hits the threshold of correct answers", () => {
     let s = initialState();
     const animals = ["大象", "蛇", "鼠", "虎", "雞"];

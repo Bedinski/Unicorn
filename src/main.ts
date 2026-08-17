@@ -53,6 +53,7 @@ import {
   stickerSummary,
 } from "@/ui/stickers";
 import { HomeworkApp } from "@/homework/ui";
+import type { WordCategory } from "@/data/words";
 
 const app = document.getElementById("app");
 if (!app) throw new Error("#app root not found");
@@ -480,7 +481,13 @@ function showFeedback(
 }
 
 function commitAnswer(wasCorrect: boolean, advanceMs: number): void {
-  const result = recordAnswer(state, round.answer.hanzi, wasCorrect);
+  const result = recordAnswer(
+    state,
+    round.answer.hanzi,
+    wasCorrect,
+    new Date(),
+    activeCategoryOverride(),
+  );
   state = result.state;
   saveState(state);
 
@@ -494,6 +501,12 @@ function commitAnswer(wasCorrect: boolean, advanceMs: number): void {
     locked = false;
     render();
   }, advanceMs);
+}
+
+function activeCategoryOverride(): WordCategory | undefined {
+  if (!state.selectedScopeId) return undefined;
+  const scope = scopeById(state.selectedScopeId);
+  return scope?.kind === "category" ? scope.category.id : undefined;
 }
 
 function reactToResult(result: AnswerResult, wasCorrect: boolean): void {

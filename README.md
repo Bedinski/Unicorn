@@ -6,7 +6,7 @@ A child-friendly First Grade Mandarin practice game built around short, answer-f
 
 The built-in curriculum is date-independent and can be selected in two ways:
 
-- **By week:** 12 study-guide packs combining each guide's vocabulary and dictation characters.
+- **By week:** 12 study-guide packs alternating HFW topics with Meizhou chapters in ascending chapter order (1, 2, 3, 4, 8, 10).
 - **By category:** High Frequency Words, the complete dictation list, and Meizhou Chapters 1–8 and 10.
 
 Starting a mission opens directly on an answerable prompt. Questions rotate among listening, character-to-meaning, and meaning-to-character. Incorrect answers immediately reveal the character, pinyin, and meaning, then return in a short review. Every completed 2–4 minute mission permanently advances the garden.
