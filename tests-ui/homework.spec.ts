@@ -39,12 +39,12 @@ test("homework is the default experience and Free Play remains available", async
   await expect(page.getByLabel("Study set:")).toContainText("Colors");
 });
 
-test("Teacher Mode replaces the large mascot with an immediately usable dictation card", async ({ page }) => {
+test("Teacher Mode replaces the large mascot with an immediately usable practice card", async ({ page }) => {
   await page.getByRole("button", { name: /Free Play/ }).click();
   await page.getByLabel("Study set:").selectOption("week-02");
-  await page.getByRole("button", { name: "Teacher Mode (Dictation)" }).click();
+  await page.getByRole("button", { name: "Teacher Mode: Listen & Write" }).click();
 
-  const card = page.getByLabel("Teacher Mode dictation card");
+  const card = page.getByLabel("Teacher Mode practice card");
   const listen = page.getByRole("button", { name: "Listen" });
   await expect(page.getByRole("button", { name: "Back to Game" })).toBeVisible();
   await expect(card).toBeVisible();
@@ -57,6 +57,12 @@ test("Teacher Mode replaces the large mascot with an immediately usable dictatio
 
   await page.getByRole("button", { name: /Next/ }).click();
   await expect(page.locator(".teacher-progress-text")).toContainText("Card 2 of");
+  await expect(page.getByLabel("Teacher Mode practice card")).toBeFocused();
+
+  await page.getByLabel("Study set:").selectOption("week-04");
+  await expect(page.locator(".teacher-progress-text")).toContainText("Card 1 of");
+  await expect(page.getByLabel("Teacher Mode practice card")).toBeFocused();
+  await expect(page.locator(".teacher-progress-bar")).toHaveAttribute("aria-valuenow", "1");
 });
 
 test("Teacher Mode controls remain above the fold on a phone", async ({ page }) => {
@@ -64,10 +70,10 @@ test("Teacher Mode controls remain above the fold on a phone", async ({ page }) 
   await page.reload();
   await page.getByRole("button", { name: /Free Play/ }).click();
   await page.getByLabel("Study set:").selectOption("week-02");
-  await page.getByRole("button", { name: "Teacher Mode (Dictation)" }).click();
+  await page.getByRole("button", { name: "Teacher Mode: Listen & Write" }).click();
 
   const listen = page.getByRole("button", { name: "Listen" });
-  await expect(page.getByLabel("Teacher Mode dictation card")).toBeVisible();
+  await expect(page.getByLabel("Teacher Mode practice card")).toBeVisible();
   const listenBox = await listen.boundingBox();
   expect(listenBox).not.toBeNull();
   expect(listenBox!.y + listenBox!.height).toBeLessThanOrEqual(844);

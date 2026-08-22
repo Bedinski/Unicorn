@@ -8,7 +8,7 @@ export interface TeacherCardHandlers {
 }
 
 /**
- * Render a flashcard for "Teacher Mode" — dictation practice where the
+ * Render a flashcard for "Teacher Mode" — guided paper practice where the
  * child writes on paper. Shows the character, pinyin, English meaning,
  * and a Listen button. Pressing Next advances the deck.
  *
@@ -22,16 +22,16 @@ export function renderTeacherCard(
 ): string {
   if (total === 0) {
     return `
-      <section class="teacher-card teacher-card--empty">
+      <section class="teacher-card teacher-card--empty" data-teacher-card tabindex="-1" aria-label="Teacher Mode unavailable">
         <div class="teacher-card-emoji">📭</div>
-        <div class="teacher-card-message">No dictation words available for this selection.</div>
+        <div class="teacher-card-message">No practice words available for this selection.</div>
         <div class="teacher-card-hint">Pick a different week above, or switch back to game mode.</div>
       </section>
     `;
   }
   if (index >= total || !word) {
     return `
-      <section class="teacher-card teacher-card--complete">
+      <section class="teacher-card teacher-card--complete" data-teacher-card tabindex="-1" aria-label="Teacher Mode complete">
         <div class="teacher-card-emoji">🎉</div>
         <div class="teacher-card-message">All done!</div>
         <div class="teacher-card-hint">Great writing practice today.</div>
@@ -50,11 +50,11 @@ export function renderTeacherCard(
   return `
     <div class="teacher-progress">
       <div class="teacher-progress-text">Card ${index + 1} of ${total}</div>
-      <div class="teacher-progress-bar">
-        <div class="teacher-progress-fill" style="width:${Math.round(((index + 1) / total) * 100)}%"></div>
+      <div class="teacher-progress-bar" role="progressbar" aria-label="Teacher practice progress" aria-valuemin="1" aria-valuemax="${total}" aria-valuenow="${index + 1}">
+        <div class="teacher-progress-fill" aria-hidden="true" style="width:${Math.round(((index + 1) / total) * 100)}%"></div>
       </div>
     </div>
-    <section class="teacher-card" data-teacher-card tabindex="-1" aria-label="Teacher Mode dictation card">
+    <section class="teacher-card" data-teacher-card tabindex="-1" aria-label="Teacher Mode practice card">
       <div class="teacher-card-emoji">👨‍🏫</div>
       <div class="teacher-hanzi" data-teacher-hanzi>${hanzi}</div>
       <div class="teacher-pinyin">${pinyin}</div>

@@ -52,6 +52,46 @@ describe("source-anchored First Grade curriculum", () => {
     }
   });
 
+  it("preserves each category master's own pinyin and meaning", () => {
+    const mismatches = STUDY_CATEGORIES.flatMap((category) => {
+      const resolved = wordsForCategory(category.id);
+      return category.items.flatMap(([hanzi, pinyin, english], index) => {
+        const word = resolved[index];
+        return word?.pinyin === pinyin && word.english === english
+          ? []
+          : [{ category: category.id, hanzi, expected: { pinyin, english }, actual: word }];
+      });
+    });
+    expect(mismatches).toEqual([]);
+  });
+
+  it("uses the active week's source metadata for duplicate Hanzi", () => {
+    const week2Name = wordsForWeek(FIRST_GRADE_WEEKS[1]).find((word) => word.hanzi === "名字");
+    const week4Speak = wordsForWeek(FIRST_GRADE_WEEKS[3]).find((word) => word.hanzi === "說話");
+    const week6Can = wordsForWeek(FIRST_GRADE_WEEKS[5]).find((word) => word.hanzi === "可以");
+    const week6Afraid = wordsForWeek(FIRST_GRADE_WEEKS[5]).find((word) => word.hanzi === "害怕");
+
+    expect(week2Name).toMatchObject({ pinyin: "míngzì", english: "name", category: "meizhou-1" });
+    expect(week4Speak).toMatchObject({ english: "speak", category: "meizhou-2" });
+    expect(week6Can).toMatchObject({ english: "can; could", category: "meizhou-3" });
+    expect(week6Afraid).toMatchObject({ english: "afraid", category: "meizhou-3" });
+  });
+
+  it("keeps intentional metadata differences between source masters", () => {
+    expect(wordsForCategory("hfw-hobbies").find((word) => word.hanzi === "看書"))
+      .toMatchObject({ pinyin: "kànshū", english: "read" });
+    expect(wordsForCategory("dictation").find((word) => word.hanzi === "看書"))
+      .toMatchObject({ pinyin: "kànshū", english: "read a book" });
+    expect(wordsForCategory("hfw-misc").find((word) => word.hanzi === "名字"))
+      .toMatchObject({ pinyin: "míngzi", english: "name" });
+    expect(wordsForCategory("meizhou-1").find((word) => word.hanzi === "名字"))
+      .toMatchObject({ pinyin: "míngzì", english: "name" });
+    expect(wordsForCategory("dictation").find((word) => word.hanzi === "可以"))
+      .toMatchObject({ english: "can; may" });
+    expect(wordsForCategory("meizhou-3").find((word) => word.hanzi === "可以"))
+      .toMatchObject({ english: "can; could" });
+  });
+
   it("matches the audited source item counts", () => {
     expect(Object.fromEntries(STUDY_CATEGORIES.map((category) => [category.id, category.items.length])))
       .toEqual({

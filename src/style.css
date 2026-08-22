@@ -1606,6 +1606,11 @@ body {
   text-align: center;
 }
 
+.teacher-card:focus-visible {
+  outline: 4px solid rgba(124, 58, 237, 0.45);
+  outline-offset: 3px;
+}
+
 .practice-mix li span { font-size: 1.35rem; }
 .practice-mix li strong { font-size: 0.72rem; line-height: 1.15; }
 

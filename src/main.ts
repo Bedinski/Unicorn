@@ -175,7 +175,7 @@ function render(): void {
       <button class="teacher-toggle ${state.teacherMode ? "teacher-toggle--on" : ""}"
               data-teacher-toggle type="button"
               aria-pressed="${state.teacherMode}">
-        ${state.teacherMode ? "🎮 Back to Game" : "👨‍🏫 Teacher Mode (Dictation)"}
+        ${state.teacherMode ? "🎮 Back to Game" : "👨‍🏫 Teacher Mode: Listen & Write"}
       </button>
     </section>
 
@@ -295,16 +295,19 @@ function wireBoard(): void {
       onNext: () => {
         teacherIndex++;
         render();
+        focusTeacherCard();
       },
       onPrev: () => {
         if (teacherIndex > 0) {
           teacherIndex--;
           render();
+          focusTeacherCard();
         }
       },
       onRestart: () => {
         rebuildTeacherDeck();
         render();
+        focusTeacherCard();
       },
     });
     // Teacher mode: audio only plays when the Listen button is pressed,
@@ -364,8 +367,12 @@ function onToggleTeacherMode(): void {
   locked = false;
   render();
   if (next) {
-    app!.querySelector<HTMLElement>("[data-teacher-card]")?.focus();
+    focusTeacherCard();
   }
+}
+
+function focusTeacherCard(): void {
+  app!.querySelector<HTMLElement>("[data-teacher-card]")?.focus();
 }
 
 function onPracticeWeekChange(event: Event): void {
@@ -382,6 +389,7 @@ function onPracticeWeekChange(event: Event): void {
   }
   locked = false;
   render();
+  if (state.teacherMode) focusTeacherCard();
 }
 
 function wireStickerBook(): void {

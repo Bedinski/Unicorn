@@ -212,10 +212,25 @@ for (const [hanzi, pinyin, english] of WEEKLY_DICTATION_ITEMS) {
 
 export const FIRST_GRADE_WORDS: readonly FirstGradeWord[] = [...wordIndex.values()];
 
+function wordForCategoryItem(
+  definition: StudyCategoryDefinition,
+  item: RawItem,
+): FirstGradeWord {
+  const [hanzi, pinyin, english] = item;
+  const indexed = wordIndex.get(hanzi);
+  return {
+    hanzi,
+    pinyin,
+    english,
+    category: definition.id,
+    categories: indexed?.categories ?? [definition.id],
+  };
+}
+
 export function wordsForCategory(id: StudyCategoryId): FirstGradeWord[] {
   const definition = STUDY_CATEGORIES.find((candidate) => candidate.id === id);
   if (!definition) return [];
-  return definition.items.map(([hanzi]) => wordIndex.get(hanzi)!).filter(Boolean);
+  return definition.items.map((item) => wordForCategoryItem(definition, item));
 }
 
 export interface FirstGradeWeek {
@@ -311,11 +326,22 @@ export const FIRST_GRADE_WEEKS: readonly FirstGradeWeek[] = [
 
 export function wordsForWeek(week: FirstGradeWeek): FirstGradeWord[] {
   const ordered = [...week.recognitionHanzi, ...week.dictationHanzi];
+  const contextualWords = new Map<string, FirstGradeWord>();
+  for (const categoryId of week.categoryIds) {
+    const definition = STUDY_CATEGORIES.find((candidate) => candidate.id === categoryId);
+    if (!definition) continue;
+    for (const item of definition.items) {
+      const hanzi = item[0];
+      if (!contextualWords.has(hanzi)) {
+        contextualWords.set(hanzi, wordForCategoryItem(definition, item));
+      }
+    }
+  }
   const seen = new Set<string>();
   return ordered.flatMap((hanzi) => {
     if (seen.has(hanzi)) return [];
     seen.add(hanzi);
-    const word = wordIndex.get(hanzi);
+    const word = contextualWords.get(hanzi) ?? wordIndex.get(hanzi);
     return word ? [word] : [];
   });
 }

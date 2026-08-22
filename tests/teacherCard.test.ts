@@ -40,6 +40,8 @@ describe("renderTeacherCard", () => {
     const fill = host.querySelector<HTMLElement>(".teacher-progress-fill");
     // 3/8 = 37.5% -> rounds to 38%
     expect(fill?.style.width).toBe("38%");
+    expect(host.querySelector("[role=progressbar]")?.getAttribute("aria-valuenow"))
+      .toBe("3");
   });
 
   it("hides Previous on the first card and shows it from card 2 onward", () => {
@@ -59,11 +61,15 @@ describe("renderTeacherCard", () => {
     const host = mount(renderTeacherCard(null, 5, 5));
     expect(host.querySelector(".teacher-card--complete")).not.toBeNull();
     expect(host.querySelector("[data-teacher-restart]")).not.toBeNull();
+    expect(host.querySelector("[data-teacher-card]")?.getAttribute("aria-label"))
+      .toBe("Teacher Mode complete");
   });
 
   it("renders an empty-deck message when total is 0", () => {
     const host = mount(renderTeacherCard(null, 0, 0));
     expect(host.querySelector(".teacher-card--empty")).not.toBeNull();
+    expect(host.querySelector("[data-teacher-card]")?.getAttribute("aria-label"))
+      .toBe("Teacher Mode unavailable");
   });
 });
 
